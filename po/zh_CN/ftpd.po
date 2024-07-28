@@ -154,6 +154,10 @@ msgstr "会话"
 msgid "Settings"
 msgstr "设置"
 
+#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:460
+msgid "Upload Log"
+msgstr "上传日志"
+
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:319
 #, c-format
 msgid "Started server at %s\n"

@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2021 Michael Theall
+// Copyright (C) 2023 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,12 +26,12 @@
 #include <zstd.h>
 #endif
 
-#if !defined(NDS) && !defined(_3DS) && !defined(__SWITCH__)
+#if !defined(NDS) && !defined(__3DS__) && !defined(__SWITCH__)
 #include <GLFW/glfw3.h>
 #endif
 
 char const *const g_dearImGuiVersion   = "Dear ImGui " IMGUI_VERSION;
-char const *const g_dearImGuiCopyright = "Copyright (C) 2014-2021 Omar Cornut";
+char const *const g_dearImGuiCopyright = "Copyright (C) 2014-2023 Omar Cornut";
 
 char const *const g_mitLicense =
     "The MIT License (MIT)\n"
@@ -52,7 +52,7 @@ char const *const g_mitLicense =
     "ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
     "SOFTWARE.";
 
-#ifdef _3DS
+#ifdef __3DS__
 char const *const g_libctruVersion = "libctru";
 char const *const g_citro3dVersion = "citro3d";
 
@@ -125,7 +125,7 @@ char const *const g_zlibLicense =
     "3. This notice may not be removed or altered from any source distribution.";
 #endif
 
-#if !defined(NDS) && !defined(_3DS) && !defined(__SWITCH__)
+#if !defined(NDS) && !defined(__3DS__) && !defined(__SWITCH__)
 #define STR(x) #x
 #define XSTR(x) STR (x)
 #define GLFW_VERSION_STRING                                                                        \

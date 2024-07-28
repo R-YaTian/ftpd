@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2022 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ public:
 	static UniqueFtpConfig load (char const *path_);
 
 #ifndef NDS
-	std::lock_guard<platform::Mutex> lockGuard ();
+	std::scoped_lock<platform::Mutex> lockGuard ();
 #endif
 
 	/// \brief Save config
@@ -63,7 +63,7 @@ public:
 	/// \brief Get port
 	std::uint16_t port () const;
 
-#ifdef _3DS
+#ifdef __3DS__
 	/// \brief Whether to get mtime
 	/// \note only effective on 3DS
 	bool getMTime () const;
@@ -100,7 +100,7 @@ public:
 	/// \param port_ Listen port
 	bool setPort (std::uint16_t port_);
 
-#ifdef _3DS
+#ifdef __3DS__
 	/// \brief Set whether to get mtime
 	/// \param getMTime_ Whether to get mtime
 	void setGetMTime (bool getMTime_);
@@ -140,7 +140,7 @@ private:
 	/// \brief Listen port
 	std::uint16_t m_port;
 
-#ifdef _3DS
+#ifdef __3DS__
 	/// \brief Whether to get mtime
 	bool m_getMTime = true;
 #endif

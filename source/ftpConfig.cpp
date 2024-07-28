@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2022 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -156,7 +156,7 @@ UniqueFtpConfig FtpConfig::load (char const *const path_)
 			config->m_pass = val;
 		else if (key == "port")
 			parseInt (port, val);
-#ifdef _3DS
+#ifdef __3DS__
 		else if (key == "mtime")
 		{
 			if (val == "0")
@@ -190,9 +190,9 @@ UniqueFtpConfig FtpConfig::load (char const *const path_)
 }
 
 #ifndef NDS
-std::lock_guard<platform::Mutex> FtpConfig::lockGuard ()
+std::scoped_lock<platform::Mutex> FtpConfig::lockGuard ()
 {
-	return std::lock_guard<platform::Mutex> (m_lock);
+	return std::scoped_lock<platform::Mutex> (m_lock);
 }
 #endif
 
@@ -213,7 +213,7 @@ bool FtpConfig::save (char const *const path_)
 		std::fprintf (fp, "pass=%s\n", m_pass.c_str ());
 	std::fprintf (fp, "port=%u\n", m_port);
 
-#ifdef _3DS
+#ifdef __3DS__
 	std::fprintf (fp, "mtime=%u\n", m_getMTime);
 #endif
 
@@ -248,7 +248,7 @@ std::uint16_t FtpConfig::port () const
 	return m_port;
 }
 
-#ifdef _3DS
+#ifdef __3DS__
 bool FtpConfig::getMTime () const
 {
 	return m_getMTime;
@@ -299,21 +299,28 @@ bool FtpConfig::setPort (std::string const &port_)
 
 bool FtpConfig::setPort (std::uint16_t const port_)
 {
-	if (port_ < 1024
-#if !defined(NDS) && !defined(_3DS)
-	    && port_ != 0
-#endif
-	)
+#ifdef __SWITCH__
+	// Switch is not allowed < 1024, except 0
+	if (port_ < 1024 && port_ != 0)
 	{
 		errno = EPERM;
 		return false;
 	}
+#elif defined(NDS) || defined(__3DS__)
+	// 3DS is allowed < 1024, but not 0
+	// NDS is allowed < 1024, but 0 crashes the app
+	if (port_ == 0)
+	{
+		errno = EPERM;
+		return false;
+	}
+#endif
 
 	m_port = port_;
 	return true;
 }
 
-#ifdef _3DS
+#ifdef __3DS__
 void FtpConfig::setGetMTime (bool const getMTime_)
 {
 	m_getMTime = getMTime_;

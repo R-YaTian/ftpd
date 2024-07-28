@@ -20,7 +20,7 @@
 
 #include "socket.h"
 
-#include "gettext.h"
+#include "getText.h"
 #include "log.h"
 
 #include <fcntl.h>
@@ -36,10 +36,10 @@
 Socket::~Socket ()
 {
 	if (m_listening)
-		info (_ ("Stop listening on [%s]:%u\n"), m_sockName.name (), m_sockName.port ());
+		info (getText("Stop listening on [%s]:%u\n"), m_sockName.name (), m_sockName.port ());
 
 	if (m_connected)
-		info (_ ("Closing connection to [%s]:%u\n"), m_peerName.name (), m_peerName.port ());
+		info (getText("Closing connection to [%s]:%u\n"), m_peerName.name (), m_peerName.port ());
 
 #ifdef NDS
 	if (::closesocket (m_fd) != 0)
@@ -75,7 +75,7 @@ UniqueSocket Socket::accept ()
 		return nullptr;
 	}
 
-	info (_ ("Accepted connection from [%s]:%u\n"), addr.name (), addr.port ());
+	info (getText("Accepted connection from [%s]:%u\n"), addr.name (), addr.port ());
 	return UniqueSocket (new Socket (fd, m_sockName, addr));
 }
 
@@ -145,14 +145,14 @@ bool Socket::connect (SockAddr const &addr_)
 		{
 			m_peerName  = addr_;
 			m_connected = true;
-			info (_ ("Connecting to [%s]:%u\n"), addr_.name (), addr_.port ());
+			info (getText("Connecting to [%s]:%u\n"), addr_.name (), addr_.port ());
 		}
 		return false;
 	}
 
 	m_peerName  = addr_;
 	m_connected = true;
-	info (_ ("Connected to [%s]:%u\n"), addr_.name (), addr_.port ());
+	info (getText("Connected to [%s]:%u\n"), addr_.name (), addr_.port ());
 	return true;
 }
 
@@ -193,7 +193,7 @@ bool Socket::setLinger (bool const enable_, std::chrono::seconds const time_)
 	if (rc != 0)
 	{
 		error ("setsockopt(SO_LINGER, %s, %lus): %s\n",
-		    enable_ ? _ ("on") : _ ("off"),
+		    enable_ ? getText("on") : getText("off"),
 		    static_cast<unsigned long> (time_.count ()),
 		    std::strerror (errno));
 		return false;
@@ -243,7 +243,7 @@ bool Socket::setReuseAddress (bool const reuse_)
 	if (::setsockopt (m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof (reuse)) != 0)
 	{
 		error ("setsockopt(SO_REUSEADDR, %s): %s\n",
-		    reuse_ ? _ ("yes") : _ ("no"),
+		    reuse_ ? getText("yes") : getText("no"),
 		    std::strerror (errno));
 		return false;
 	}

@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2023 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ private:
 
 	/// \brief Amount of file position history to keep
 	constexpr static auto POSITION_HISTORY = 60;
-#elif defined(_3DS)
+#elif defined(__3DS__)
 	/// \brief Socket buffer size
 	constexpr static auto SOCK_BUFFERSIZE = 32768;
 
@@ -175,6 +175,7 @@ private:
 	/// \brief Transfer directory
 	/// \param args_ Command arguments
 	/// \param mode_ Transfer directory mode
+	/// \param workaround_ Workaround broken clients who use LIST -a/-l
 	void xferDir (char const *args_, XferDirMode mode_, bool workaround_);
 
 	/// \brief Read command

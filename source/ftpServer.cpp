@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2021 Michael Theall
+// Copyright (C) 2023 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ using namespace std::chrono_literals;
 #define LOCKED(x)                                                                                  \
 	do                                                                                             \
 	{                                                                                              \
-		auto const lock = std::lock_guard (m_lock);                                                \
+		auto const lock = std::scoped_lock (m_lock);                                               \
 		x;                                                                                         \
 	} while (0)
 #endif
@@ -87,6 +87,93 @@ std::pair<std::string, std::string> const s_languageMap[] = {
     {"中文（繁體）",          "zh_TW"},
     // clang-format on
 };
+
+#ifndef CLASSIC
+#ifndef NDEBUG
+std::string printable (char *const data_, std::size_t const size_)
+{
+	std::string result;
+	result.reserve (size_);
+
+	for (std::size_t i = 0; i < size_; ++i)
+	{
+		if (std::isprint (data_[i]) || std::isspace (data_[i]))
+			result.push_back (data_[i]);
+		else
+		{
+			char buffer[5];
+			std::snprintf (
+			    buffer, sizeof (buffer), "%%%02u", static_cast<unsigned char> (data_[i]));
+			result += buffer;
+		}
+	}
+
+	return result;
+}
+
+int curlDebug (CURL *const handle_,
+    curl_infotype const type_,
+    char *const data_,
+    std::size_t const size_,
+    void *const user_)
+{
+	(void)user_;
+
+	auto const text = printable (data_, size_);
+
+	switch (type_)
+	{
+	case CURLINFO_TEXT:
+		info ("== Info: %s", text.c_str ());
+		break;
+
+	case CURLINFO_HEADER_OUT:
+		info ("=> Send header: %s", text.c_str ());
+		break;
+
+	case CURLINFO_DATA_OUT:
+		info ("=> Send data: %s", text.c_str ());
+		break;
+
+	case CURLINFO_SSL_DATA_OUT:
+		info ("=> Send SSL data: %s", text.c_str ());
+		break;
+
+	case CURLINFO_HEADER_IN:
+		info ("<= Receive header: %s", text.c_str ());
+		break;
+
+	case CURLINFO_DATA_IN:
+		info ("<= Receive data: %s", text.c_str ());
+		break;
+
+	case CURLINFO_SSL_DATA_IN:
+		info ("<= Receive SSL data: %s", text.c_str ());
+		break;
+
+	default:
+		break;
+	}
+
+	return 0;
+}
+#endif
+
+std::size_t curlCallback (void *const contents_,
+    std::size_t const size_,
+    std::size_t const count_,
+    void *const user_)
+{
+	auto const total = size_ * count_;
+	auto const start = static_cast<char *> (contents_);
+	auto const end   = start + total;
+
+	auto &result = *static_cast<std::string *> (user_);
+	result.insert (std::end (result), start, end);
+
+	return total;
+}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -96,6 +183,18 @@ FtpServer::~FtpServer ()
 
 #ifndef NDS
 	m_thread.join ();
+#endif
+
+#ifndef CLASSIC
+	if (m_uploadLogCurl)
+	{
+		curl_multi_remove_handle (m_uploadLogCurlM, m_uploadLogCurl);
+		curl_easy_cleanup (m_uploadLogCurl);
+		curl_mime_free (m_uploadLogMime);
+	}
+
+	if (m_uploadLogCurlM)
+		curl_multi_cleanup (m_uploadLogCurlM);
 #endif
 }
 
@@ -116,7 +215,7 @@ void FtpServer::draw ()
 	{
 		char port[7];
 #ifndef NDS
-		auto const lock = std::lock_guard (m_lock);
+		auto const lock = std::scoped_lock (m_lock);
 #endif
 		if (m_socket)
 			std::sprintf (port, ":%u", m_socket->sockName ().port ());
@@ -124,7 +223,7 @@ void FtpServer::draw ()
 		consoleSelect (&g_statusConsole);
 		std::printf ("\x1b[0;0H\x1b[32;1m%s \x1b[36;1m%s%s",
 		    STATUS_STRING,
-		    m_socket ? m_socket->sockName ().name () : _ ("Waiting on WiFi"),
+		    m_socket ? m_socket->sockName ().name () : getText("Waiting on WiFi"),
 		    m_socket ? port : "");
 
 #ifndef NDS
@@ -141,7 +240,7 @@ void FtpServer::draw ()
 
 	{
 #ifndef NDS
-		auto const lock = std::lock_guard (s_lock);
+		auto const lock = std::scoped_lock (s_lock);
 #endif
 		if (!s_freeSpace.empty ())
 		{
@@ -155,7 +254,7 @@ void FtpServer::draw ()
 
 	{
 #ifndef NDS
-		auto const lock = std::lock_guard (m_lock);
+		auto const lock = std::scoped_lock (m_lock);
 #endif
 		consoleSelect (&g_sessionConsole);
 		std::fputs ("\x1b[2J", stdout);
@@ -175,7 +274,7 @@ void FtpServer::draw ()
 	auto const height = io.DisplaySize.y;
 
 	ImGui::SetNextWindowPos (ImVec2 (0, 0), ImGuiCond_FirstUseEver);
-#ifdef _3DS
+#ifdef __3DS__
 	// top screen
 	ImGui::SetNextWindowSize (ImVec2 (width, height * 0.5f));
 #else
@@ -185,42 +284,42 @@ void FtpServer::draw ()
 		char title[64];
 
 		{
-			auto const serverLock = std::lock_guard (m_lock);
+			auto const serverLock = std::scoped_lock (m_lock);
 			std::snprintf (title,
 			    sizeof (title),
 			    STATUS_STRING " %s###ftpd",
-			    m_socket ? m_name.c_str () : _ ("Waiting on WiFi..."));
+			    m_socket ? "" : getText("Waiting on WiFi..."));
 		}
 
 		ImGui::Begin (title,
 		    nullptr,
 		    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize
-#ifndef _3DS
+#ifndef __3DS__
 		        | ImGuiWindowFlags_MenuBar
 #endif
 		);
 	}
 
-#ifndef _3DS
+#ifndef __3DS__
 	showMenu ();
 #endif
 
-#ifndef _3DS
+#ifndef __3DS__
 	ImGui::BeginChild (
-	    _ ("Logs"), ImVec2 (0, 0.5f * height), false, ImGuiWindowFlags_HorizontalScrollbar);
+	    getText("Logs"), ImVec2 (0, 0.5f * height), false, ImGuiWindowFlags_HorizontalScrollbar);
 #endif
 	drawLog ();
-#ifndef _3DS
+#ifndef __3DS__
 	ImGui::EndChild ();
 #endif
 
-#ifdef _3DS
+#ifdef __3DS__
 	ImGui::End ();
 
 	// bottom screen
 	ImGui::SetNextWindowSize (ImVec2 (width * 0.8f, height * 0.5f));
 	ImGui::SetNextWindowPos (ImVec2 (width * 0.1f, height * 0.5f), ImGuiCond_FirstUseEver);
-	ImGui::Begin (_ ("Sessions"),
+	ImGui::Begin (getText("Sessions"),
 	    nullptr,
 	    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
 	        ImGuiWindowFlags_MenuBar);
@@ -231,7 +330,7 @@ void FtpServer::draw ()
 #endif
 
 	{
-		auto const lock = std::lock_guard (m_lock);
+		auto const lock = std::scoped_lock (m_lock);
 		for (auto &session : m_sessions)
 			session->draw ();
 	}
@@ -253,7 +352,7 @@ UniqueFtpServer FtpServer::create ()
 std::string FtpServer::getFreeSpace ()
 {
 #ifndef NDS
-	auto const lock = std::lock_guard (s_lock);
+	auto const lock = std::scoped_lock (s_lock);
 #endif
 	return s_freeSpace;
 }
@@ -261,7 +360,7 @@ std::string FtpServer::getFreeSpace ()
 void FtpServer::updateFreeSpace ()
 {
 	struct statvfs st;
-#if defined(NDS) || defined(_3DS) || defined(__SWITCH__)
+#if defined(NDS) || defined(__3DS__) || defined(__SWITCH__)
 	if (::statvfs ("sdmc:/", &st) != 0)
 #else
 	if (::statvfs ("/", &st) != 0)
@@ -271,7 +370,7 @@ void FtpServer::updateFreeSpace ()
 	auto freeSpace = fs::printSize (static_cast<std::uint64_t> (st.f_bsize) * st.f_bfree);
 
 #ifndef NDS
-	auto const lock = std::lock_guard (s_lock);
+	auto const lock = std::scoped_lock (s_lock);
 #endif
 	if (freeSpace != s_freeSpace)
 		s_freeSpace = std::move (freeSpace);
@@ -318,7 +417,7 @@ void FtpServer::handleNetworkFound ()
 	m_name.resize (std::strlen (name) + 3 + 5);
 	m_name.resize (std::sprintf (m_name.data (), "[%s]:%u", name, sockName.port ()));
 
-	info (_ ("Started server at %s\n"), m_name.c_str ());
+	info (getText("Started server at %s\n"), m_name.c_str ());
 
 	LOCKED (m_socket = std::move (socket));
 }
@@ -337,7 +436,7 @@ void FtpServer::handleNetworkLost ()
 		LOCKED (sock = std::move (m_socket));
 	}
 
-	info (_ ("Stopped server at %s\n"), m_name.c_str ());
+	info (getText("Stopped server at %s\n"), m_name.c_str ());
 }
 
 #ifndef CLASSIC
@@ -348,17 +447,69 @@ void FtpServer::showMenu ()
 
 	if (ImGui::BeginMenuBar ())
 	{
-#if defined(_3DS) || defined(__SWITCH__)
+#if defined(__3DS__) || defined(__SWITCH__)
 		// TRANSLATORS: \xee\x80\x83 (Y button)
-		if (ImGui::BeginMenu (_ ("Menu \xee\x80\x83"))) // Y Button
+		if (ImGui::BeginMenu (getText("Menu \xee\x80\x83"))) // Y Button
 #else
-		if (ImGui::BeginMenu (_ ("Menu")))
+		if (ImGui::BeginMenu (getText("Menu")))
 #endif
 		{
-			if (ImGui::MenuItem (_ ("Settings")))
+			if (ImGui::MenuItem (getText("Settings")))
 				m_showSettings = true;
 
-			if (ImGui::MenuItem (_ ("About")))
+			if (ImGui::MenuItem (getText("Upload Log")))
+			{
+#ifndef NDS
+				auto const lock = std::scoped_lock (m_lock);
+#endif
+				if (!m_uploadLogCurlM)
+					m_uploadLogCurlM = curl_multi_init ();
+
+				if (m_uploadLogCurlM && !m_uploadLogCurl.load (std::memory_order_relaxed))
+				{
+					m_uploadLogData = getLog ();
+
+					auto const handle = curl_easy_init ();
+
+#ifdef __3DS__
+					// 3DS CA fails peer verification, so add CA here
+					curl_easy_setopt (handle, CURLOPT_CAINFO, "romfs:/sni.cloudflaressl.com.ca");
+#endif
+
+#ifndef NDEBUG
+					curl_easy_setopt (handle, CURLOPT_DEBUGFUNCTION, &curlDebug);
+					curl_easy_setopt (handle, CURLOPT_DEBUGDATA, nullptr);
+					curl_easy_setopt (handle, CURLOPT_VERBOSE, 1L);
+#endif
+
+					// write result into string
+					m_uploadLogResult.clear ();
+					curl_easy_setopt (handle, CURLOPT_WRITEFUNCTION, &curlCallback);
+					curl_easy_setopt (handle, CURLOPT_WRITEDATA, &m_uploadLogResult);
+
+					// set headers
+					static char contentType[]       = "Content-Type: multipart/form-data";
+					static curl_slist const headers = {contentType, nullptr};
+					curl_easy_setopt (handle, CURLOPT_URL, "https://hastebin.com/documents");
+					curl_easy_setopt (handle, CURLOPT_HTTPHEADER, &headers);
+
+					// set form data
+					auto const mime = curl_mime_init (handle);
+					auto const part = curl_mime_addpart (mime);
+					curl_mime_name (part, "data");
+					curl_mime_data (part, m_uploadLogData.data (), m_uploadLogData.size ());
+					curl_easy_setopt (handle, CURLOPT_MIMEPOST, mime);
+
+					// add to multi handle
+					curl_multi_add_handle (m_uploadLogCurlM, handle);
+
+					// signal network thread to process
+					m_uploadLogMime = mime;
+					m_uploadLogCurl.store (handle, std::memory_order_relaxed);
+				}
+			}
+
+			if (ImGui::MenuItem (getText("About")))
 				m_showAbout = true;
 
 			ImGui::EndMenu ();
@@ -398,7 +549,7 @@ void FtpServer::showMenu ()
 
 			m_portSetting = m_config->port ();
 
-#ifdef _3DS
+#ifdef __3DS__
 			m_getMTimeSetting = m_config->getMTime ();
 #endif
 
@@ -412,7 +563,7 @@ void FtpServer::showMenu ()
 			m_passphraseSetting.resize (63);
 #endif
 
-			ImGui::OpenPopup (_ ("Settings"));
+			ImGui::OpenPopup (getText("Settings"));
 		}
 
 		showSettings ();
@@ -421,7 +572,7 @@ void FtpServer::showMenu ()
 	if (m_showAbout)
 	{
 		if (!prevShowAbout)
-			ImGui::OpenPopup (_ ("About"));
+			ImGui::OpenPopup (getText("About"));
 
 		showAbout ();
 	}
@@ -429,21 +580,21 @@ void FtpServer::showMenu ()
 
 void FtpServer::showSettings ()
 {
-#ifdef _3DS
+#ifdef __3DS__
 	auto const &io    = ImGui::GetIO ();
 	auto const width  = io.DisplaySize.x;
 	auto const height = io.DisplaySize.y;
 
 	ImGui::SetNextWindowSize (ImVec2 (width * 0.8f, height * 0.5f));
 	ImGui::SetNextWindowPos (ImVec2 (width * 0.1f, height * 0.5f));
-	if (ImGui::BeginPopupModal (_ ("Settings"),
+	if (ImGui::BeginPopupModal (getText("Settings"),
 	        nullptr,
 	        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
 #else
-	if (ImGui::BeginPopupModal (_ ("Settings"), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	if (ImGui::BeginPopupModal (getText("Settings"), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 #endif
 	{
-		if (ImGui::BeginCombo (_ ("Language"), s_languageMap[m_languageSetting].first.c_str ()))
+		if (ImGui::BeginCombo (getText("Language"), s_languageMap[m_languageSetting].first.c_str ()))
 		{
 			for (unsigned i = 0; i < std::extent_v<decltype (s_languageMap)>; ++i)
 			{
@@ -456,17 +607,17 @@ void FtpServer::showSettings ()
 			ImGui::EndCombo ();
 		}
 
-		ImGui::InputText (_ ("User"),
+		ImGui::InputText (getText("User"),
 		    m_userSetting.data (),
 		    m_userSetting.size (),
 		    ImGuiInputTextFlags_AutoSelectAll);
 
-		ImGui::InputText (_ ("Password"),
+		ImGui::InputText (getText("Password"),
 		    m_passSetting.data (),
 		    m_passSetting.size (),
 		    ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_Password);
 
-		ImGui::InputScalar (_ ("Port"),
+		ImGui::InputScalar (getText("Port"),
 		    ImGuiDataType_U16,
 		    &m_portSetting,
 		    nullptr,
@@ -474,14 +625,14 @@ void FtpServer::showSettings ()
 		    "%u",
 		    ImGuiInputTextFlags_AutoSelectAll);
 
-#ifdef _3DS
-		ImGui::Checkbox (_ ("Get mtime"), &m_getMTimeSetting);
+#ifdef __3DS__
+		ImGui::Checkbox (getText("Get mtime"), &m_getMTimeSetting);
 #endif
 
 #ifdef __SWITCH__
-		ImGui::Checkbox (_ ("Enable Access Point"), &m_enableAPSetting);
+		ImGui::Checkbox (getText("Enable Access Point"), &m_enableAPSetting);
 
-		ImGui::InputText (_ ("SSID"),
+		ImGui::InputText (getText("SSID"),
 		    m_ssidSetting.data (),
 		    m_ssidSetting.size (),
 		    ImGuiInputTextFlags_AutoSelectAll);
@@ -489,7 +640,7 @@ void FtpServer::showSettings ()
 		if (ssidError)
 			ImGui::TextColored (ImVec4 (1.0f, 0.4f, 0.4f, 1.0f), ssidError);
 
-		ImGui::InputText (_ ("Passphrase"),
+		ImGui::InputText (getText("Passphrase"),
 		    m_passphraseSetting.data (),
 		    m_passphraseSetting.size (),
 		    ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_Password);
@@ -499,10 +650,10 @@ void FtpServer::showSettings ()
 #endif
 
 		ImVec2 const sizes[] = {
-		    ImGui::CalcTextSize (_ ("Apply")),
-		    ImGui::CalcTextSize (_ ("Save")),
-		    ImGui::CalcTextSize (_ ("Reset")),
-		    ImGui::CalcTextSize (_ ("Cancel")),
+		    ImGui::CalcTextSize (getText("Apply")),
+		    ImGui::CalcTextSize (getText("Save")),
+		    ImGui::CalcTextSize (getText("Reset")),
+		    ImGui::CalcTextSize (getText("Cancel")),
 		};
 
 		auto const maxWidth = std::max_element (
@@ -519,13 +670,13 @@ void FtpServer::showSettings ()
 		auto const width  = maxWidth + 2 * style.FramePadding.x;
 		auto const height = maxHeight + 2 * style.FramePadding.y;
 
-		auto const apply = ImGui::Button (_ ("Apply"), ImVec2 (width, height));
+		auto const apply = ImGui::Button (getText("Apply"), ImVec2 (width, height));
 		ImGui::SameLine ();
-		auto const save = ImGui::Button (_ ("Save"), ImVec2 (width, height));
+		auto const save = ImGui::Button (getText("Save"), ImVec2 (width, height));
 		ImGui::SameLine ();
-		auto const reset = ImGui::Button (_ ("Reset"), ImVec2 (width, height));
+		auto const reset = ImGui::Button (getText("Reset"), ImVec2 (width, height));
 		ImGui::SameLine ();
-		auto const cancel = ImGui::Button (_ ("Cancel"), ImVec2 (width, height));
+		auto const cancel = ImGui::Button (getText("Cancel"), ImVec2 (width, height));
 
 		if (apply || save)
 		{
@@ -541,7 +692,7 @@ void FtpServer::showSettings ()
 			m_config->setPass (m_passSetting);
 			m_config->setPort (m_portSetting);
 
-#ifdef _3DS
+#ifdef __3DS__
 			m_config->setGetMTime (m_getMTimeSetting);
 #endif
 
@@ -562,7 +713,7 @@ void FtpServer::showSettings ()
 			auto const lock = m_config->lockGuard ();
 #endif
 			if (!m_config->save (FTPDCONFIG))
-				error (_ ("Failed to save config\n"));
+				error (getText("Failed to save config\n"));
 		}
 
 		if (reset)
@@ -572,7 +723,7 @@ void FtpServer::showSettings ()
 			m_userSetting = defaults->user ();
 			m_passSetting = defaults->pass ();
 			m_portSetting = defaults->port ();
-#ifdef _3DS
+#ifdef __3DS__
 			m_getMTimeSetting = defaults->getMTime ();
 #endif
 
@@ -599,24 +750,24 @@ void FtpServer::showAbout ()
 	auto const width  = io.DisplaySize.x;
 	auto const height = io.DisplaySize.y;
 
-#ifdef _3DS
+#ifdef __3DS__
 	ImGui::SetNextWindowSize (ImVec2 (width * 0.8f, height * 0.5f));
 	ImGui::SetNextWindowPos (ImVec2 (width * 0.1f, height * 0.5f));
 #else
 	ImGui::SetNextWindowSize (ImVec2 (width * 0.8f, height * 0.8f));
 	ImGui::SetNextWindowPos (ImVec2 (width * 0.1f, height * 0.1f));
 #endif
-	if (ImGui::BeginPopupModal (_ ("About"),
+	if (ImGui::BeginPopupModal (getText("About"),
 	        nullptr,
 	        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
 	{
 		ImGui::TextUnformatted (STATUS_STRING);
-		ImGui::TextWrapped ("Copyright © 2021 Michael Theall, Dave Murphy, TuxSH");
+		ImGui::TextWrapped ("Copyright © 2023 Michael Theall, Dave Murphy, TuxSH");
 		ImGui::Separator ();
-		ImGui::Text (_ ("Platform: %s"), io.BackendPlatformName);
-		ImGui::Text (_ ("Renderer: %s"), io.BackendRendererName);
+		ImGui::Text (getText("Platform: %s"), io.BackendPlatformName);
+		ImGui::Text (getText("Renderer: %s"), io.BackendRendererName);
 
-		if (ImGui::Button (_ ("OK"), ImVec2 (100, 0)))
+		if (ImGui::Button (getText("OK"), ImVec2 (100, 0)))
 		{
 			m_showAbout = false;
 			ImGui::CloseCurrentPopup ();
@@ -625,60 +776,60 @@ void FtpServer::showAbout ()
 		ImGui::Separator ();
 		if (ImGui::TreeNode (g_dearImGuiVersion))
 		{
-			ImGui::TextWrapped (g_dearImGuiCopyright);
+			ImGui::TextWrapped ("%s", g_dearImGuiCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_mitLicense);
+			ImGui::TextWrapped ("%s", g_mitLicense);
 			ImGui::TreePop ();
 		}
 
 #if defined(NDS)
-#elif defined(_3DS)
+#elif defined(__3DS__)
 		if (ImGui::TreeNode (g_libctruVersion))
 		{
-			ImGui::TextWrapped (g_zlibLicense);
+			ImGui::TextWrapped ("%s", g_zlibLicense);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_zlibLicense);
+			ImGui::TextWrapped ("%s", g_zlibLicense);
 			ImGui::TreePop ();
 		}
 
 		if (ImGui::TreeNode (g_citro3dVersion))
 		{
-			ImGui::TextWrapped (g_citro3dCopyright);
+			ImGui::TextWrapped ("%s", g_citro3dCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_zlibLicense);
+			ImGui::TextWrapped ("%s", g_zlibLicense);
 			ImGui::TreePop ();
 		}
 
 #elif defined(__SWITCH__)
 		if (ImGui::TreeNode (g_libnxVersion))
 		{
-			ImGui::TextWrapped (g_libnxCopyright);
+			ImGui::TextWrapped ("%s", g_libnxCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_libnxLicense);
+			ImGui::TextWrapped ("%s", g_libnxLicense);
 			ImGui::TreePop ();
 		}
 
 		if (ImGui::TreeNode (g_deko3dVersion))
 		{
-			ImGui::TextWrapped (g_deko3dCopyright);
+			ImGui::TextWrapped ("%s", g_deko3dCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_zlibLicense);
+			ImGui::TextWrapped ("%s", g_zlibLicense);
 			ImGui::TreePop ();
 		}
 
 		if (ImGui::TreeNode (g_zstdVersion))
 		{
-			ImGui::TextWrapped (g_zstdCopyright);
+			ImGui::TextWrapped ("%s", g_zstdCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_bsdLicense);
+			ImGui::TextWrapped ("%s", g_bsdLicense);
 			ImGui::TreePop ();
 		}
 #else
 		if (ImGui::TreeNode (g_glfwVersion))
 		{
-			ImGui::TextWrapped (g_glfwCopyright);
+			ImGui::TextWrapped ("%s", g_glfwCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped (g_zlibLicense);
+			ImGui::TextWrapped ("%s", g_zlibLicense);
 			ImGui::TreePop ();
 		}
 #endif
@@ -716,6 +867,49 @@ void FtpServer::loop ()
 			handleNetworkFound ();
 	}
 
+#ifndef CLASSIC
+	{
+		auto const lock = std::scoped_lock (m_lock);
+		if (m_uploadLogCurl.load (std::memory_order_relaxed))
+		{
+			int busy      = 0;
+			auto const mc = curl_multi_perform (m_uploadLogCurlM, &busy);
+			if (mc != CURLM_OK)
+			{
+				error ("curl_multi_perform: %d %s\n", mc, curl_multi_strerror (mc));
+
+				curl_multi_remove_handle (m_uploadLogCurlM, m_uploadLogCurl);
+				curl_easy_cleanup (m_uploadLogCurl);
+				curl_mime_free (m_uploadLogMime);
+				m_uploadLogMime = nullptr;
+				m_uploadLogCurl.store (nullptr, std::memory_order_relaxed);
+			}
+			else
+			{
+				int count      = 0;
+				auto const msg = curl_multi_info_read (m_uploadLogCurlM, &count);
+				if (msg && msg->msg == CURLMSG_DONE && msg->easy_handle == m_uploadLogCurl)
+				{
+					if (msg->data.result != CURLE_OK)
+						info ("cURL finished with status %d\n", msg->data.result);
+
+					if (m_uploadLogResult.starts_with ("{\"key\":\""))
+					{
+						auto const key = m_uploadLogResult.substr (8, 10);
+						info ("https://hastebin.com/%s\n", key.c_str ());
+					}
+
+					curl_multi_remove_handle (m_uploadLogCurlM, m_uploadLogCurl);
+					curl_easy_cleanup (m_uploadLogCurl);
+					curl_mime_free (m_uploadLogMime);
+					m_uploadLogMime = nullptr;
+					m_uploadLogCurl.store (nullptr, std::memory_order_relaxed);
+				}
+			}
+		}
+	}
+#endif
+
 	// poll listen socket
 	if (m_socket)
 	{
@@ -748,7 +942,7 @@ void FtpServer::loop ()
 		{
 			// remove dead sessions
 #ifndef NDS
-			auto const lock = std::lock_guard (m_lock);
+			auto const lock = std::scoped_lock (m_lock);
 #endif
 			auto it = std::begin (m_sessions);
 			while (it != std::end (m_sessions))

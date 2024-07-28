@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2023 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@
 #include <mutex>
 using namespace std::chrono_literals;
 
-#if defined(NDS) || defined(_3DS) || defined(__SWITCH__)
+#if defined(NDS) || defined(__3DS__) || defined(__SWITCH__)
 #define lstat stat
 #endif
 
@@ -51,7 +51,7 @@ using namespace std::chrono_literals;
 #define LOCKED(x)                                                                                  \
 	do                                                                                             \
 	{                                                                                              \
-		auto const lock = std::lock_guard (m_lock);                                                \
+		auto const lock = std::scoped_lock (m_lock);                                               \
 		x;                                                                                         \
 	} while (0)
 #endif
@@ -319,7 +319,7 @@ FtpSession::FtpSession (FtpConfig &config_, UniqueSocket commandSocket_)
 bool FtpSession::dead ()
 {
 #ifndef NDS
-	auto const lock = std::lock_guard (m_lock);
+	auto const lock = std::scoped_lock (m_lock);
 #endif
 	if (m_commandSocket || m_pasvSocket || m_dataSocket)
 		return false;
@@ -330,7 +330,7 @@ bool FtpSession::dead ()
 void FtpSession::draw ()
 {
 #ifndef NDS
-	auto const lock = std::lock_guard (m_lock);
+	auto const lock = std::scoped_lock (m_lock);
 #endif
 
 #ifdef CLASSIC
@@ -342,7 +342,7 @@ void FtpSession::draw ()
 
 	std::fputs (m_workItem.empty () ? m_cwd.c_str () : m_workItem.c_str (), stdout);
 #else
-#ifdef _3DS
+#ifdef __3DS__
 	ImGui::BeginChild (m_windowName.c_str (), ImVec2 (0.0f, 45.0f), true);
 #else
 	ImGui::BeginChild (m_windowName.c_str (), ImVec2 (0.0f, 80.0f), true);
@@ -564,7 +564,7 @@ bool FtpSession::poll (std::vector<UniqueFtpSession> const &sessions_)
 					{
 						// PORT connection completed
 						auto const &sockName = session->m_dataSocket->peerName ();
-						info (_ ("Connected to [%s]:%u\n"), sockName.name (), sockName.port ());
+						info (getText("Connected to [%s]:%u\n"), sockName.name (), sockName.port ());
 
 						session->sendResponse ("150 Ready\r\n");
 						session->setState (State::DATA_TRANSFER, true, false);
@@ -616,7 +616,7 @@ void FtpSession::setState (State const state_, bool const closePasv_, bool const
 	{
 		{
 #ifndef NDS
-			auto lock = std::lock_guard (m_lock);
+			auto const lock = std::scoped_lock (m_lock);
 #endif
 
 			m_restartPosition = 0;
@@ -719,7 +719,7 @@ bool FtpSession::dataAccept ()
 		return false;
 	}
 
-#ifndef _3DS
+#ifndef __3DS__
 	m_dataSocket->setRecvBufferSize (SOCK_BUFFERSIZE);
 	m_dataSocket->setSendBufferSize (SOCK_BUFFERSIZE);
 #endif
@@ -794,7 +794,7 @@ int FtpSession::fillDirent (struct stat const &st_, std::string_view const path_
 					type_ = "file";
 				else if (S_ISDIR (st_.st_mode))
 					type_ = "dir";
-#if !defined(_3DS) && !defined(__SWITCH__)
+#if !defined(__3DS__) && !defined(__SWITCH__)
 				else if (S_ISLNK (st_.st_mode))
 					type_ = "os.unix=symlink";
 				else if (S_ISCHR (st_.st_mode))
@@ -971,7 +971,7 @@ int FtpSession::fillDirent (struct stat const &st_, std::string_view const path_
 			buffer[pos++] = ' ';
 		}
 
-#ifdef _3DS
+#ifdef __3DS__
 		auto const owner = "3DS";
 		auto const group = "3DS";
 #elif defined(__SWITCH__)
@@ -990,7 +990,7 @@ int FtpSession::fillDirent (struct stat const &st_, std::string_view const path_
 		    // clang-format off
 		    S_ISREG (st_.st_mode)  ? '-' :
 		    S_ISDIR (st_.st_mode)  ? 'd' :
-#if !defined(_3DS) && !defined(__SWITCH__)
+#if !defined(__3DS__) && !defined(__SWITCH__)
 		    S_ISLNK (st_.st_mode)  ? 'l' :
 		    S_ISCHR (st_.st_mode)  ? 'c' :
 		    S_ISBLK (st_.st_mode)  ? 'b' :
@@ -1198,18 +1198,8 @@ void FtpSession::xferDir (char const *const args_, XferDirMode const mode_, bool
 		auto const path = buildResolvedPath (m_cwd, args_);
 		if (path.empty ())
 		{
-			sendResponse ("550 %s\r\n", std::strerror (errno));
-			setState (State::COMMAND, true, true);
-			return;
-		}
-
-		struct stat st;
-		if (::stat (path.c_str (), &st) != 0)
-		{
-			auto const rc = errno;
-
 			// work around broken clients that think LIST -a/-l is valid
-			if (workaround_ && mode_ == XferDirMode::LIST)
+			if (workaround_)
 			{
 				if (args_[0] == '-' && (args_[1] == 'a' || args_[1] == 'l'))
 				{
@@ -1225,12 +1215,32 @@ void FtpSession::xferDir (char const *const args_, XferDirMode const mode_, bool
 				}
 			}
 
-			sendResponse ("550 %s\r\n", std::strerror (rc));
+			sendResponse ("550 %s\r\n", std::strerror (errno));
 			setState (State::COMMAND, true, true);
 			return;
 		}
 
-		if (S_ISDIR (st.st_mode))
+		struct stat st;
+		if (::stat (path.c_str (), &st) != 0)
+		{
+			sendResponse ("550 %s\r\n", std::strerror (errno));
+			setState (State::COMMAND, true, true);
+			return;
+		}
+
+		if (mode_ == XferDirMode::MLST)
+		{
+			auto const rc = fillDirent (st, path);
+			if (rc != 0)
+			{
+				sendResponse ("550 %s\r\n", std::strerror (rc));
+				setState (State::COMMAND, true, true);
+				return;
+			}
+
+			LOCKED (m_workItem = path);
+		}
+		else if (S_ISDIR (st.st_mode))
 		{
 			if (!m_dir.open (path.c_str ()))
 			{
@@ -1245,7 +1255,7 @@ void FtpSession::xferDir (char const *const args_, XferDirMode const mode_, bool
 			if (mode_ == XferDirMode::MLSD && m_mlstType)
 			{
 				// send this directory as type=cdir
-				auto const rc = fillDirent (m_lwd, "cdir");
+				auto const rc = fillDirent (st, m_lwd, "cdir");
 				if (rc != 0)
 				{
 					sendResponse ("550 %s\r\n", std::strerror (rc));
@@ -1290,6 +1300,18 @@ void FtpSession::xferDir (char const *const args_, XferDirMode const mode_, bool
 			LOCKED (m_workItem = path);
 		}
 	}
+	else if (mode_ == XferDirMode::MLST)
+	{
+		auto const rc = fillDirent (m_cwd);
+		if (rc != 0)
+		{
+			sendResponse ("550 %s\r\n", std::strerror (rc));
+			setState (State::COMMAND, true, true);
+			return;
+		}
+
+		LOCKED (m_workItem = m_cwd);
+	}
 	else if (!m_dir.open (m_cwd.c_str ()))
 	{
 		// no argument, but opening cwd failed
@@ -1320,7 +1342,7 @@ void FtpSession::xferDir (char const *const args_, XferDirMode const mode_, bool
 	if (mode_ == XferDirMode::MLST || mode_ == XferDirMode::STAT)
 	{
 		// this is a little different; we have to send the data over the command socket
-		sendResponse ("213-Status\r\n");
+		sendResponse ("250-Status\r\n");
 		setState (State::DATA_TRANSFER, true, true);
 		LOCKED (m_dataSocket = m_commandSocket);
 		m_send = true;
@@ -1395,7 +1417,7 @@ void FtpSession::readCommand (int const events_)
 		// prepare to receive data
 		if (m_commandBuffer.freeSize () == 0)
 		{
-			error (_ ("Exceeded command buffer size\n"));
+			error (getText("Exceeded command buffer size\n"));
 			closeCommand ();
 			return;
 		}
@@ -1410,7 +1432,7 @@ void FtpSession::readCommand (int const events_)
 		if (rc == 0)
 		{
 			// peer closed connection
-			info (_ ("Peer closed connection\n"));
+			info (getText("Peer closed connection\n"));
 			closeCommand ();
 			return;
 		}
@@ -1553,7 +1575,7 @@ void FtpSession::sendResponse (char const *fmt_, ...)
 
 	if (static_cast<std::size_t> (rc) > size)
 	{
-		error (_ ("Not enough space for response\n"));
+		error (getText("Not enough space for response\n"));
 		closeCommand ();
 		return;
 	}
@@ -1584,7 +1606,7 @@ void FtpSession::sendResponse (std::string_view const response_)
 
 	if (response_.size () > size)
 	{
-		error (_ ("Not enough space for response\n"));
+		error (getText("Not enough space for response\n"));
 		closeCommand ();
 		return;
 	}
@@ -1602,10 +1624,10 @@ bool FtpSession::listTransfer ()
 
 		// check xfer dir type
 		int rc = 226;
-		if (m_xferDirMode == XferDirMode::STAT)
-			rc = 213;
+		if (m_xferDirMode == XferDirMode::MLST || m_xferDirMode == XferDirMode::STAT)
+			rc = 250;
 
-		// check if this was for a file
+		// check if this was for a file/MLST
 		if (!m_dir)
 		{
 			// we already sent the file's listing
@@ -1650,7 +1672,7 @@ bool FtpSession::listTransfer ()
 			auto const fullPath = buildPath (m_lwd, dent->d_name);
 			struct stat st;
 
-#ifdef _3DS
+#ifdef __3DS__
 			// the sdmc directory entry already has the type and size, so no need to do a slow stat
 			auto const dp    = static_cast<DIR *> (m_dir);
 			auto const magic = *reinterpret_cast<u32 *> (dp->dirData->dirStruct);
@@ -1691,7 +1713,7 @@ bool FtpSession::listTransfer ()
 					std::uint64_t mtime = 0;
 					auto const rc       = archive_getmtime (fullPath.c_str (), &mtime);
 					if (rc != 0)
-						error ("archive_getmtime %s 0x%lx\n", fullPath.c_str (), rc);
+						error ("sdmc_getmtime %s 0x%lx\n", fullPath.c_str (), rc);
 					else
 						st.st_mtime = mtime;
 				}
@@ -1701,9 +1723,46 @@ bool FtpSession::listTransfer ()
 			    // lstat the entry
 			    if (::lstat (fullPath.c_str (), &st) != 0)
 			{
+#ifndef __SWITCH__
 				sendResponse ("550 %s\r\n", std::strerror (errno));
 				setState (State::COMMAND, true, true);
 				return false;
+#else
+				// probably archive bit set; list name with dummy stats
+				std::memset (&st, 0, sizeof (st));
+				error ("%s: type %u\n", dent->d_name, dent->d_type);
+				switch (dent->d_type)
+				{
+				case DT_BLK:
+					st.st_mode = S_IFBLK;
+					break;
+
+				case DT_CHR:
+					st.st_mode = S_IFCHR;
+					break;
+
+				case DT_DIR:
+					st.st_mode = S_IFDIR;
+					break;
+
+				case DT_FIFO:
+					st.st_mode = S_IFIFO;
+					break;
+
+				case DT_LNK:
+					st.st_mode = S_IFLNK;
+					break;
+
+				case DT_REG:
+				case DT_UNKNOWN:
+					st.st_mode = S_IFREG;
+					break;
+
+				case DT_SOCK:
+					st.st_mode = S_IFSOCK;
+					break;
+				}
+#endif
 			}
 
 			auto const path = encodePath (dent->d_name);
@@ -2035,44 +2094,20 @@ void FtpSession::MLSD (char const *args_)
 	}
 
 	// open the path in MLSD mode
-	xferDir (args_, XferDirMode::MLSD, true);
+	xferDir (args_, XferDirMode::MLSD, false);
 }
 
 void FtpSession::MLST (char const *args_)
 {
-	setState (State::COMMAND, false, false);
-
-	// build the path to list
-	auto const path = buildResolvedPath (m_cwd, args_);
-	if (path.empty ())
+	if (!authorized ())
 	{
-		sendResponse ("501 %s\r\n", std::strerror (errno));
+		setState (State::COMMAND, false, false);
+		sendResponse ("530 Not logged in\r\n");
 		return;
 	}
 
-	// stat path
-	struct stat st;
-	if (::lstat (path.c_str (), &st) != 0)
-	{
-		sendResponse ("550 %s\r\n", std::strerror (errno));
-		return;
-	}
-
-	// encode path
-	auto const encodedPath = encodePath (path);
-
-	m_xferDirMode = XferDirMode::MLST;
-	auto const rc = fillDirent (st, path);
-	if (rc != 0)
-	{
-		sendResponse ("550 %s\r\n", std::strerror (rc));
-		return;
-	}
-
-	sendResponse ("250-Status\r\n"
-	              " %s\r\n"
-	              "250 End\r\n",
-	    encodedPath.c_str ());
+	// open the path in MLST mode
+	xferDir (args_, XferDirMode::MLST, false);
 }
 
 void FtpSession::MODE (char const *args_)
@@ -2228,7 +2263,7 @@ void FtpSession::PASV (char const *args_)
 
 	// create an address to bind
 	struct sockaddr_in addr = m_commandSocket->sockName ();
-#if defined(NDS) || defined(_3DS)
+#if defined(NDS) || defined(__3DS__)
 	static std::uint16_t ephemeralPort = 5001;
 	if (ephemeralPort > 10000)
 		ephemeralPort = 5001;
@@ -2257,7 +2292,7 @@ void FtpSession::PASV (char const *args_)
 	auto const &sockName = m_pasvSocket->sockName ();
 	std::string name     = sockName.name ();
 	auto const port      = sockName.port ();
-	info (_ ("Listening on [%s]:%u\n"), name.c_str (), port);
+	info (getText("Listening on [%s]:%u\n"), name.c_str (), port);
 
 	// send the address in the ftp format
 	for (auto &c : name)
@@ -2552,7 +2587,7 @@ void FtpSession::SITE (char const *args_)
 		              " Set username: SITE USER <NAME>\r\n"
 		              " Set password: SITE PASS <PASS>\r\n"
 		              " Set port: SITE PORT <PORT>\r\n"
-#ifdef _3DS
+#ifdef __3DS__
 		              " Set getMTime: SITE MTIME [0|1]\r\n"
 #endif
 		              " Save config: SITE SAVE\r\n"
@@ -2610,7 +2645,7 @@ void FtpSession::SITE (char const *args_)
 		sendResponse ("200 OK\r\n");
 		return;
 	}
-#ifdef _3DS
+#ifdef __3DS__
 	else if (::strcasecmp (command.c_str (), "MTIME") == 0)
 	{
 		if (arg == "0")

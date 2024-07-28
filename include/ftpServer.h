@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2022 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,12 +25,20 @@
 #include "platform.h"
 #include "socket.h"
 
+#ifndef CLASSIC
+#include <curl/curl.h>
+#endif
+
 #include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
+
+#if defined(__3DS__) || defined(__SWITCH__)
+#define FTPDCONFIG "/config/ftpd/ftpd.cfg"
+#endif
 
 class FtpServer;
 using UniqueFtpServer = std::unique_ptr<FtpServer>;
@@ -108,6 +116,20 @@ private:
 	std::atomic<bool> m_quit;
 
 #ifndef CLASSIC
+	/// \brief Log upload cURL context
+	CURLM *m_uploadLogCurlM = nullptr;
+	/// \brief Log upload mime context
+	curl_mime *m_uploadLogMime = nullptr;
+	/// \brief Log upload cURL context
+	std::atomic<CURL *> m_uploadLogCurl = nullptr;
+
+	/// \brief Log upload data
+	std::string m_uploadLogData;
+	/// \brief Log upload result
+	std::string m_uploadLogResult;
+#endif
+
+#ifndef CLASSIC
 	/// \brief Whether to show settings menu
 	bool m_showSettings = false;
 
@@ -123,11 +145,14 @@ private:
 	unsigned m_languageSetting;
 	/// \brief User name setting
 	std::string m_userSetting;
+
 	/// \brief Password setting
 	std::string m_passSetting;
+
 	/// \brief Port setting
 	std::uint16_t m_portSetting;
-#ifdef _3DS
+
+#ifdef __3DS__
 	/// \brief getMTime setting
 	bool m_getMTimeSetting;
 #endif

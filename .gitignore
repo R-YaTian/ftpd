@@ -12,6 +12,7 @@
 *.nso
 *.pfs0
 *.smdh
+*.mo
 .gdb_history
 3ds/build
 3ds-classic/build

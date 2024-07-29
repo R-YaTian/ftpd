@@ -20,7 +20,7 @@
 
 #include "socket.h"
 
-#include "getText.h"
+#include "gettext.h"
 #include "log.h"
 
 #include <fcntl.h>

@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: ftpd pro v3.0.0\n"
 "Report-Msgid-Bugs-To: pigman46@gmail.com\n"
 "POT-Creation-Date: 2021-06-13 11:14-0500\n"
-"PO-Revision-Date: 2020-06-03 21:22-0500\n"
-"Last-Translator: Michael Theall <pigman46@gmail.com>\n"
+"PO-Revision-Date: 2024-07-29 15:30-0500\n"
+"Last-Translator: R-YaTian\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja_JP/ftpd\n"
 "MIME-Version: 1.0\n"
@@ -21,185 +21,185 @@ msgstr ""
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:422
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:607
 msgid "About"
-msgstr ""
+msgstr "について"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:78
 #, c-format
 msgid "Accepted connection from [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uからの接続を受け入れる\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:500
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:520
 msgid "Apply"
-msgstr ""
+msgstr "申し込む"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:503
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:526
 msgid "Cancel"
-msgstr ""
+msgstr "キャンセル"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:42
 #, c-format
 msgid "Closing connection to [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uの接続を閉じる\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:567
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:155
 #, c-format
 msgid "Connected to [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uを接続します\n"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:148
 #, c-format
 msgid "Connecting to [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uを接続します\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:480
 msgid "Enable Access Point"
-msgstr ""
+msgstr "アクセスポイントを有効にする"
 
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1398
 msgid "Exceeded command buffer size\n"
-msgstr ""
+msgstr "コマンドバッファサイズを超えています\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:563
 msgid "Failed to save config\n"
-msgstr ""
+msgstr "設定を保存できませんでした\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:476
 msgid "Get mtime"
-msgstr ""
+msgstr "時間をもらう"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:444
 msgid "Language"
-msgstr ""
+msgstr "言語"
 
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:2260
 #, c-format
 msgid "Listening on [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uで聴いています\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:208
 msgid "Logs"
-msgstr ""
+msgstr "ログ"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:353
 msgid "Menu"
-msgstr ""
+msgstr "メニュー"
 
 #. TRANSLATORS: \xee\x80\x83 (Y button)
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:351
 msgid "Menu "
-msgstr ""
+msgstr "メニュー "
 
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1556
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1587
 msgid "Not enough space for response\n"
-msgstr ""
+msgstr "応答のための十分なスペースがありません\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:617
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:490
 msgid "Passphrase"
-msgstr ""
+msgstr "パスフレーズ"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:462
 msgid "Password"
-msgstr ""
+msgstr "パスワード"
 
 #. peer closed connection
 #: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1413
 msgid "Peer closed connection\n"
-msgstr ""
+msgstr "ユーザーが接続を停止しました\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:614
 #, c-format
 msgid "Platform: %s"
-msgstr ""
+msgstr "プラットホーム: %s"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:467
 msgid "Port"
-msgstr ""
+msgstr "ポート"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:615
 #, c-format
 msgid "Renderer: %s"
-msgstr ""
+msgstr "レンダラー: %s"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:502
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:524
 msgid "Reset"
-msgstr ""
+msgstr "リセット"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:482
 msgid "SSID"
-msgstr ""
+msgstr "SSID"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:501
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:522
 msgid "Save"
-msgstr ""
+msgstr "保存する"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:221
 msgid "Sessions"
-msgstr ""
+msgstr "会期"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:356
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:413
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:437
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:441
 msgid "Settings"
-msgstr ""
+msgstr "設定"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:460
 msgid "Upload Log"
-msgstr ""
+msgstr "アップロードログ"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:319
 #, c-format
 msgid "Started server at %s\n"
-msgstr ""
+msgstr "%sにサーバーを起動しました\n"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:39
 #, c-format
 msgid "Stop listening on [%s]:%u\n"
-msgstr ""
+msgstr "[%s]:%uでのリスニングを停止ます\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:338
 #, c-format
 msgid "Stopped server at %s\n"
-msgstr ""
+msgstr "%sにサーバーを停止しました\n"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:457
 msgid "User"
-msgstr ""
+msgstr "ユーザー"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:125
 msgid "Waiting on WiFi"
-msgstr ""
+msgstr "インターネットを待っています"
 
 #: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:190
 msgid "Waiting on WiFi..."
-msgstr ""
+msgstr "インターネットを待っています..."
 
 #: /home/mtheall/workspace/ftpd/source/3ds/platform.cpp:214
 msgid "WiFi connected\n"
-msgstr ""
+msgstr "インターネットを接続します\n"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:246
 msgid "no"
-msgstr ""
+msgstr "いいえ"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:196
 msgid "off"
-msgstr ""
+msgstr "OFF"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:196
 msgid "on"
-msgstr ""
+msgstr "ON"
 
 #: /home/mtheall/workspace/ftpd/source/socket.cpp:246
 msgid "yes"
-msgstr ""
+msgstr "はい"

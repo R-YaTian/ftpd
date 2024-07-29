@@ -22,7 +22,7 @@
 
 #include "fs.h"
 #include "ftpServer.h"
-#include "getText.h"
+#include "gettext.h"
 #include "log.h"
 
 #include "imgui_citro3d.h"

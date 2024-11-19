@@ -5,7 +5,7 @@
 //
 // The MIT License (MIT)
 //
-// Copyright (C) 2023 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,8 @@
 #ifndef CLASSIC
 #include "imgui_nx.h"
 
-#include "imgui.h"
-
-#include "../imgui/imgui_internal.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include "fs.h"
 #include "platform.h"
@@ -1335,19 +1334,19 @@ void handleAppletHook (AppletHookType const hook_, void *const param_)
 }
 
 /// \brief Get clipboard text callback
-/// \param userData_ User data
-char const *getClipboardText (void *const userData_)
+/// \param context_ ImGui context
+char const *getClipboardText (ImGuiContext *const context_)
 {
-	(void)userData_;
+	(void)context_;
 	return s_clipboard.c_str ();
 }
 
 /// \brief Set clipboard text callback
-/// \param userData_ User data
+/// \param context_ ImGui context
 /// \param text_ Clipboard text
-void setClipboardText (void *const userData_, char const *const text_)
+void setClipboardText (ImGuiContext *const context_, char const *const text_)
 {
-	(void)userData_;
+	(void)context_;
 	s_clipboard = text_;
 }
 
@@ -1357,6 +1356,8 @@ void setClipboardText (void *const userData_, char const *const text_)
 /// \param force_ Whether to ignore prior mouse position
 void moveMouse (ImGuiIO &io_, ImVec2 const &pos_, bool const force_ = false)
 {
+	(void)io_;
+
 	// get update timestamp
 	auto const now = std::chrono::steady_clock::now ();
 
@@ -1443,9 +1444,6 @@ void updateTouch (HidTouchScreenState const &touchState_, ImGuiIO &io_)
 /// \param io_ ImGui IO
 void updateGamepads (PadState const &padState_, ImGuiIO &io_)
 {
-	// clear navigation inputs
-	std::memset (io_.NavInputs, 0, sizeof (io_.NavInputs));
-
 	auto const buttonMapping = {
 	    // clang-format off
 	    std::make_pair (HidNpadButton_A,     ImGuiKey_GamepadFaceDown),  // A and B are swapped
@@ -1573,8 +1571,8 @@ void updateKeyboard (HidKeyboardState const &kbState_, ImGuiIO &io_)
 		SwkbdConfig kbd;
 		swkbdCreate (&kbd, 0);
 		swkbdConfigMakePresetDefault (&kbd);
-		swkbdConfigSetInitialText (
-		    &kbd, std::string (textState.InitialTextA.Data, textState.InitialTextA.Size).c_str ());
+		swkbdConfigSetInitialText (&kbd,
+		    std::string (textState.TextToRevertTo.Data, textState.TextToRevertTo.Size).c_str ());
 
 		char buffer[32];
 		if (R_SUCCEEDED (swkbdShow (&kbd, buffer, sizeof (buffer))))
@@ -1605,11 +1603,15 @@ bool imgui::nx::init ()
 	u64 languageCode;
 	auto rc = setInitialize ();
 	if (R_FAILED (rc))
+	{
+		std::fprintf (stderr, "setInitialize: 0x%x\n", rc);
 		return false;
+	}
 
 	rc = setGetSystemLanguage (&languageCode);
 	if (R_FAILED (rc))
 	{
+		std::fprintf (stderr, "setGetSystemLanguage: 0x%x\n", rc);
 		setExit ();
 		return false;
 	}
@@ -1620,7 +1622,10 @@ bool imgui::nx::init ()
 	s32 numFonts = 0;
 	rc           = plGetSharedFont (languageCode, fonts.data (), fonts.size (), &numFonts);
 	if (R_FAILED (rc))
+	{
+		std::fprintf (stderr, "plGetSharedFont: 0x%x\n", rc);
 		return false;
+	}
 	fonts.resize (numFonts);
 
 	// add fonts
@@ -1658,10 +1663,12 @@ bool imgui::nx::init ()
 	// initially disable mouse cursor
 	io.MouseDrawCursor = false;
 
+	auto &platformIO = ImGui::GetPlatformIO ();
+
 	// clipboard callbacks
-	io.SetClipboardTextFn = setClipboardText;
-	io.GetClipboardTextFn = getClipboardText;
-	io.ClipboardUserData  = nullptr;
+	platformIO.Platform_SetClipboardTextFn = &setClipboardText;
+	platformIO.Platform_GetClipboardTextFn = &getClipboardText;
+	platformIO.Platform_ClipboardUserData  = nullptr;
 
 	return true;
 }

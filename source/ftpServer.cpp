@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2023 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,33 +21,60 @@
 #include "ftpServer.h"
 
 #include "fs.h"
+#include "ftpConfig.h"
+#include "ftpSession.h"
 #include "gettext.h"
 #include "licenses.h"
 #include "log.h"
 #include "platform.h"
+#include "sockAddr.h"
 #include "socket.h"
 
-#include "imgui.h"
+#ifndef __NDS__
+#include "mdns.h"
+#endif
 
-#ifdef NDS
+#ifdef __NDS__
 #include <dswifi9.h>
 #endif
 
-#include <arpa/inet.h>
+#ifdef __3DS__
+#include <citro3d.h>
+#endif
+
+#ifndef CLASSIC
+#include <imgui.h>
+
+#include <jansson.h>
+
+#include <curl/easy.h>
+#include <curl/multi.h>
+#ifndef NDEBUG
+#include <curl/curl.h>
+#endif
+#endif
+
 #include <sys/statvfs.h>
-#include <unistd.h>
+using statvfs_t = struct statvfs;
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
+#include <functional>
 #include <mutex>
+#include <string>
 #include <string_view>
-#include <thread>
+#include <utility>
+#include <vector>
 using namespace std::chrono_literals;
 
-#ifdef NDS
+#ifdef __NDS__
 #define LOCKED(x) x
 #else
 #define LOCKED(x)                                                                                  \
@@ -63,7 +90,12 @@ namespace
 /// \brief Application start time
 auto const s_startTime = std::time (nullptr);
 
-#ifndef NDS
+#ifdef __3DS__
+/// \brief Timezone offset in seconds (only used on 3DS)
+int s_tzOffset = 0;
+#endif
+
+#ifndef __NDS__
 /// \brief Mutex for s_freeSpace
 platform::Mutex s_lock;
 #endif
@@ -83,28 +115,40 @@ std::pair<std::string, std::string> const s_languageMap[] = {
     {"Nederlands",           "nl_NL"},
     {"Português (Portugal)", "pt_PT"},
     {"Русский",              "ru_RU"},
-    {"中文（简体）",          "zh_CN"},
-    {"中文（繁體）",          "zh_TW"},
+    {"中文（简体）",         "zh_CN"},
+    {"中文（繁體）",         "zh_TW"},
     // clang-format on
 };
 
 #ifndef CLASSIC
 #ifndef NDEBUG
-std::string printable (char *const data_, std::size_t const size_)
+std::string printable (std::string_view const data_)
 {
-	std::string result;
-	result.reserve (size_);
-
-	for (std::size_t i = 0; i < size_; ++i)
+	unsigned count = 0;
+	for (auto const &c : data_)
 	{
-		if (std::isprint (data_[i]) || std::isspace (data_[i]))
-			result.push_back (data_[i]);
+		if (c != '%' && (std::isprint (c) || std::isspace (c)))
+			++count;
+		else
+			count += 3;
+	}
+
+	std::string result;
+	result.reserve (count);
+
+	for (auto const &c : data_)
+	{
+		if (c != '%' && (std::isprint (c) || std::isspace (c)))
+			result.push_back (c);
 		else
 		{
-			char buffer[5];
-			std::snprintf (
-			    buffer, sizeof (buffer), "%%%02u", static_cast<unsigned char> (data_[i]));
-			result += buffer;
+			result.push_back ('%');
+
+			auto const upper = (static_cast<unsigned char> (c) >> 4u) & 0xF;
+			auto const lower = (static_cast<unsigned char> (c) >> 0u) & 0xF;
+
+			result.push_back (gsl::narrow_cast<char> (upper < 10 ? upper + '0' : upper + 'A' - 10));
+			result.push_back (gsl::narrow_cast<char> (lower < 10 ? lower + '0' : lower + 'A' - 10));
 		}
 	}
 
@@ -117,9 +161,10 @@ int curlDebug (CURL *const handle_,
     std::size_t const size_,
     void *const user_)
 {
+	(void)handle_;
 	(void)user_;
 
-	auto const text = printable (data_, size_);
+	auto const text = printable (std::string_view (data_, size_));
 
 	switch (type_)
 	{
@@ -181,7 +226,7 @@ FtpServer::~FtpServer ()
 {
 	m_quit = true;
 
-#ifndef NDS
+#ifndef __NDS__
 	m_thread.join ();
 #endif
 
@@ -198,23 +243,36 @@ FtpServer::~FtpServer ()
 #endif
 }
 
-FtpServer::FtpServer (UniqueFtpConfig config_) : m_config (std::move (config_)), m_quit (false)
+FtpServer::FtpServer (UniqueFtpConfig config_)
+    : m_config (std::move (config_))
+#ifndef CLASSIC
+      ,
+      m_hostnameSetting (m_config->hostname ())
+#endif
 {
-#ifndef NDS
+#ifndef __NDS__
+	mdns::setHostname (m_config->hostname ());
+
 	m_thread = platform::Thread (std::bind (&FtpServer::threadFunc, this));
+#endif
+
+#ifdef __3DS__
+	s64 tzOffsetMinutes;
+	if (R_SUCCEEDED (svcGetSystemInfo (&tzOffsetMinutes, 0x10000, 0x103)))
+		s_tzOffset = tzOffsetMinutes * 60;
 #endif
 }
 
 void FtpServer::draw ()
 {
-#ifdef NDS
+#ifdef __NDS__
 	loop ();
 #endif
 
 #ifdef CLASSIC
 	{
 		char port[7];
-#ifndef NDS
+#ifndef __NDS__
 		auto const lock = std::scoped_lock (m_lock);
 #endif
 		if (m_socket)
@@ -226,7 +284,7 @@ void FtpServer::draw ()
 		    m_socket ? m_socket->sockName ().name () : getText("Waiting on WiFi"),
 		    m_socket ? port : "");
 
-#ifndef NDS
+#ifndef __NDS__
 		char timeBuffer[16];
 		auto const now = std::time (nullptr);
 		std::strftime (timeBuffer, sizeof (timeBuffer), "%H:%M:%S", std::localtime (&now));
@@ -239,7 +297,7 @@ void FtpServer::draw ()
 	}
 
 	{
-#ifndef NDS
+#ifndef __NDS__
 		auto const lock = std::scoped_lock (s_lock);
 #endif
 		if (!s_freeSpace.empty ())
@@ -253,7 +311,7 @@ void FtpServer::draw ()
 	}
 
 	{
-#ifndef NDS
+#ifndef __NDS__
 		auto const lock = std::scoped_lock (m_lock);
 #endif
 		consoleSelect (&g_sessionConsole);
@@ -281,17 +339,17 @@ void FtpServer::draw ()
 	ImGui::SetNextWindowSize (ImVec2 (width, height));
 #endif
 	{
-		char title[64];
+		std::array<char, 64> title{};
 
 		{
 			auto const serverLock = std::scoped_lock (m_lock);
-			std::snprintf (title,
-			    sizeof (title),
+			std::snprintf (title.data (),
+			    title.size (),
 			    STATUS_STRING " %s###ftpd",
 			    m_socket ? "" : getText("Waiting on WiFi..."));
 		}
 
-		ImGui::Begin (title,
+		ImGui::Begin (title.data (),
 		    nullptr,
 		    ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize
 #ifndef __3DS__
@@ -339,6 +397,11 @@ void FtpServer::draw ()
 #endif
 }
 
+bool FtpServer::quit ()
+{
+	return m_quit;
+}
+
 UniqueFtpServer FtpServer::create ()
 {
 	updateFreeSpace ();
@@ -351,7 +414,7 @@ UniqueFtpServer FtpServer::create ()
 
 std::string FtpServer::getFreeSpace ()
 {
-#ifndef NDS
+#ifndef __NDS__
 	auto const lock = std::scoped_lock (s_lock);
 #endif
 	return s_freeSpace;
@@ -359,8 +422,8 @@ std::string FtpServer::getFreeSpace ()
 
 void FtpServer::updateFreeSpace ()
 {
-	struct statvfs st;
-#if defined(NDS) || defined(__3DS__) || defined(__SWITCH__)
+	statvfs_t st = {};
+#if defined(__NDS__) || defined(__3DS__) || defined(__SWITCH__)
 	if (::statvfs ("sdmc:/", &st) != 0)
 #else
 	if (::statvfs ("/", &st) != 0)
@@ -369,7 +432,7 @@ void FtpServer::updateFreeSpace ()
 
 	auto freeSpace = fs::printSize (static_cast<std::uint64_t> (st.f_bsize) * st.f_bfree);
 
-#ifndef NDS
+#ifndef __NDS__
 	auto const lock = std::scoped_lock (s_lock);
 #endif
 	if (freeSpace != s_freeSpace)
@@ -381,6 +444,13 @@ std::time_t FtpServer::startTime ()
 	return s_startTime;
 }
 
+#ifdef __3DS__
+int FtpServer::tzOffset ()
+{
+	return s_tzOffset;
+}
+#endif
+
 void FtpServer::handleNetworkFound ()
 {
 	SockAddr addr;
@@ -390,7 +460,7 @@ void FtpServer::handleNetworkFound ()
 	std::uint16_t port;
 
 	{
-#ifndef NDS
+#ifndef __NDS__
 		auto const lock = m_config->lockGuard ();
 #endif
 		port = m_config->port ();
@@ -398,7 +468,7 @@ void FtpServer::handleNetworkFound ()
 
 	addr.setPort (port);
 
-	auto socket = Socket::create ();
+	auto socket = Socket::create (Socket::eStream);
 	if (!socket)
 		return;
 
@@ -420,6 +490,14 @@ void FtpServer::handleNetworkFound ()
 	info (getText("Started server at %s\n"), m_name.c_str ());
 
 	LOCKED (m_socket = std::move (socket));
+
+#ifndef __NDS__
+	socket = mdns::createSocket ();
+	if (!socket)
+		return;
+
+	LOCKED (m_mdnsSocket = std::move (socket));
+#endif
 }
 
 void FtpServer::handleNetworkLost ()
@@ -431,9 +509,15 @@ void FtpServer::handleNetworkLost ()
 	}
 
 	{
-		// destroy command socket
 		UniqueSocket sock;
+
+		// destroy command socket
 		LOCKED (sock = std::move (m_socket));
+
+#ifndef __NDS__
+		// destroy mDNS socket
+		LOCKED (sock = std::move (m_mdnsSocket));
+#endif
 	}
 
 	info (getText("Stopped server at %s\n"), m_name.c_str ());
@@ -459,7 +543,7 @@ void FtpServer::showMenu ()
 
 			if (ImGui::MenuItem (getText("Upload Log")))
 			{
-#ifndef NDS
+#ifndef __NDS__
 				auto const lock = std::scoped_lock (m_lock);
 #endif
 				if (!m_uploadLogCurlM)
@@ -470,11 +554,6 @@ void FtpServer::showMenu ()
 					m_uploadLogData = getLog ();
 
 					auto const handle = curl_easy_init ();
-
-#ifdef __3DS__
-					// 3DS CA fails peer verification, so add CA here
-					curl_easy_setopt (handle, CURLOPT_CAINFO, "romfs:/sni.cloudflaressl.com.ca");
-#endif
 
 #ifndef NDEBUG
 					curl_easy_setopt (handle, CURLOPT_DEBUGFUNCTION, &curlDebug);
@@ -488,9 +567,9 @@ void FtpServer::showMenu ()
 					curl_easy_setopt (handle, CURLOPT_WRITEDATA, &m_uploadLogResult);
 
 					// set headers
-					static char contentType[]       = "Content-Type: multipart/form-data";
+					static char contentType[]       = "Content-Type: text/plain";
 					static curl_slist const headers = {contentType, nullptr};
-					curl_easy_setopt (handle, CURLOPT_URL, "https://hastebin.com/documents");
+					curl_easy_setopt (handle, CURLOPT_URL, "https://pastie.io/documents");
 					curl_easy_setopt (handle, CURLOPT_HTTPHEADER, &headers);
 
 					// set form data
@@ -509,8 +588,15 @@ void FtpServer::showMenu ()
 				}
 			}
 
+			ImGui::Separator ();
+
 			if (ImGui::MenuItem (getText("About")))
 				m_showAbout = true;
+
+			ImGui::Separator ();
+
+			if (ImGui::MenuItem (getText("Quit")))
+				m_quit = true;
 
 			ImGui::EndMenu ();
 		}
@@ -521,7 +607,7 @@ void FtpServer::showMenu ()
 	{
 		if (!prevShowSettings)
 		{
-#ifndef NDS
+#ifndef __NDS__
 			auto const lock = m_config->lockGuard ();
 #endif
 			auto const &language = m_config->language ();
@@ -546,6 +632,9 @@ void FtpServer::showMenu ()
 
 			m_passSetting = m_config->pass ();
 			m_passSetting.resize (32);
+
+			m_hostnameSetting = m_config->hostname ();
+			m_hostnameSetting.resize (32);
 
 			m_portSetting = m_config->port ();
 
@@ -617,6 +706,11 @@ void FtpServer::showSettings ()
 		    m_passSetting.size (),
 		    ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_Password);
 
+		ImGui::InputText (getText("Hostname"),
+		    m_hostnameSetting.data (),
+		    m_hostnameSetting.size (),
+		    ImGuiInputTextFlags_AutoSelectAll);
+
 		ImGui::InputScalar (getText("Port"),
 		    ImGuiDataType_U16,
 		    &m_portSetting,
@@ -683,13 +777,14 @@ void FtpServer::showSettings ()
 			m_showSettings = false;
 			ImGui::CloseCurrentPopup ();
 
-#ifndef NDS
+#ifndef __NDS__
 			auto const lock = m_config->lockGuard ();
 #endif
 
 			m_config->setLanguage (s_languageMap[m_languageSetting].second);
 			m_config->setUser (m_userSetting);
 			m_config->setPass (m_passSetting);
+			m_config->setHostname (m_hostnameSetting);
 			m_config->setPort (m_portSetting);
 
 #ifdef __3DS__
@@ -705,11 +800,13 @@ void FtpServer::showSettings ()
 
 			UniqueSocket socket;
 			LOCKED (socket = std::move (m_socket));
+
+			mdns::setHostname (m_hostnameSetting);
 		}
 
 		if (save)
 		{
-#ifndef NDS
+#ifndef __NDS__
 			auto const lock = m_config->lockGuard ();
 #endif
 			if (!m_config->save (FTPDCONFIG))
@@ -720,9 +817,10 @@ void FtpServer::showSettings ()
 		{
 			static auto const defaults = FtpConfig::create ();
 
-			m_userSetting = defaults->user ();
-			m_passSetting = defaults->pass ();
-			m_portSetting = defaults->port ();
+			m_userSetting     = defaults->user ();
+			m_passSetting     = defaults->pass ();
+			m_hostnameSetting = defaults->hostname ();
+			m_portSetting     = defaults->port ();
 #ifdef __3DS__
 			m_getMTimeSetting = defaults->getMTime ();
 #endif
@@ -762,15 +860,29 @@ void FtpServer::showAbout ()
 	        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
 	{
 		ImGui::TextUnformatted (STATUS_STRING);
-		ImGui::TextWrapped ("Copyright © 2023 Michael Theall, Dave Murphy, TuxSH");
+		ImGui::TextWrapped ("Copyright © 2024 Michael Theall, Dave Murphy, TuxSH");
 		ImGui::Separator ();
 		ImGui::Text (getText("Platform: %s"), io.BackendPlatformName);
 		ImGui::Text (getText("Renderer: %s"), io.BackendRendererName);
+
+#ifdef __3DS__
+		ImGui::Text ("Command Buffer Usage: %.1f%%", 100.0f * C3D_GetCmdBufUsage ());
+		ImGui::Text ("GPU Processing Usage: %.1f%%", 6.0f * C3D_GetProcessingTime ());
+		ImGui::Text ("GPU Drawing Usage: %.1f%%", 6.0f * C3D_GetDrawingTime ());
+#endif
 
 		if (ImGui::Button (getText("OK"), ImVec2 (100, 0)))
 		{
 			m_showAbout = false;
 			ImGui::CloseCurrentPopup ();
+		}
+
+		ImGui::Separator ();
+		if (ImGui::TreeNode ("Connections"))
+		{
+			for (auto const &session : m_sessions)
+				session->drawConnections ();
+			ImGui::TreePop ();
 		}
 
 		ImGui::Separator ();
@@ -782,7 +894,7 @@ void FtpServer::showAbout ()
 			ImGui::TreePop ();
 		}
 
-#if defined(NDS)
+#if defined(__NDS__)
 #elif defined(__3DS__)
 		if (ImGui::TreeNode (g_libctruVersion))
 		{
@@ -821,7 +933,7 @@ void FtpServer::showAbout ()
 		{
 			ImGui::TextWrapped ("%s", g_zstdCopyright);
 			ImGui::Separator ();
-			ImGui::TextWrapped ("%s", g_bsdLicense);
+			ImGui::TextWrapped ("%s", g_zstdLicense);
 			ImGui::TreePop ();
 		}
 #else
@@ -830,6 +942,24 @@ void FtpServer::showAbout ()
 			ImGui::TextWrapped ("%s", g_glfwCopyright);
 			ImGui::Separator ();
 			ImGui::TextWrapped ("%s", g_zlibLicense);
+			ImGui::TreePop ();
+		}
+#endif
+
+#if defined(__NDS__) || defined(__3DS__) || defined(__SWITCH__)
+		if (ImGui::TreeNode (g_globVersion))
+		{
+			ImGui::TextWrapped ("%s", g_globCopyright);
+			ImGui::Separator ();
+			ImGui::TextWrapped ("%s", g_globLicense);
+			ImGui::TreePop ();
+		}
+
+		if (ImGui::TreeNode (g_collateVersion))
+		{
+			ImGui::TextWrapped ("%s", g_collateCopyright);
+			ImGui::Separator ();
+			ImGui::TextWrapped ("%s", g_collateLicense);
 			ImGui::TreePop ();
 		}
 #endif
@@ -893,11 +1023,19 @@ void FtpServer::loop ()
 					if (msg->data.result != CURLE_OK)
 						info ("cURL finished with status %d\n", msg->data.result);
 
-					if (m_uploadLogResult.starts_with ("{\"key\":\""))
+					json_error_t err;
+					auto const root = json_loads (m_uploadLogResult.c_str (), 0, &err);
+					if (json_is_object (root))
 					{
-						auto const key = m_uploadLogResult.substr (8, 10);
-						info ("https://hastebin.com/%s\n", key.c_str ());
+						auto const key = json_object_get (root, "key");
+						if (json_is_string (key))
+							info (
+							    "Log uploaded to https://pastie.io/%s\n", json_string_value (key));
 					}
+					else
+						error ("Failed to upload log\n");
+
+					json_decref (root);
 
 					curl_multi_remove_handle (m_uploadLogCurlM, m_uploadLogCurl);
 					curl_easy_cleanup (m_uploadLogCurl);
@@ -937,11 +1075,17 @@ void FtpServer::loop ()
 		}
 	}
 
+#ifndef __NDS__
+	// poll mDNS socket
+	if (m_socket && m_mdnsSocket)
+		mdns::handleSocket (m_mdnsSocket.get (), m_socket->sockName ());
+#endif
+
 	{
 		std::vector<UniqueFtpSession> deadSessions;
 		{
 			// remove dead sessions
-#ifndef NDS
+#ifndef __NDS__
 			auto const lock = std::scoped_lock (m_lock);
 #endif
 			auto it = std::begin (m_sessions);
@@ -965,7 +1109,7 @@ void FtpServer::loop ()
 		if (!FtpSession::poll (m_sessions))
 			handleNetworkLost ();
 	}
-#ifndef NDS
+#ifndef __NDS__
 	// avoid busy polling in background thread
 	else
 		platform::Thread::sleep (16ms);

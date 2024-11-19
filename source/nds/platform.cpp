@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ PrintConsole g_sessionConsole;
 namespace
 {
 /// \brief Host address
-struct in_addr s_addr = {0};
+in_addr s_addr = {0};
 /// \brief Which side of double-buffer we're on
 bool s_backBuffer = false;
 /// \brief Whether to power backlight
@@ -52,13 +52,11 @@ bool platform::networkVisible ()
 	switch (Wifi_AssocStatus ())
 	{
 	case ASSOCSTATUS_DISCONNECTED:
-	case ASSOCSTATUS_CANNOTCONNECT:
 		s_addr.s_addr = 0;
 		Wifi_AutoConnect ();
 		break;
 
 	case ASSOCSTATUS_SEARCHING:
-	case ASSOCSTATUS_AUTHENTICATING:
 	case ASSOCSTATUS_ASSOCIATING:
 	case ASSOCSTATUS_ACQUIRINGDHCP:
 		s_addr.s_addr = 0;
@@ -75,7 +73,7 @@ bool platform::networkVisible ()
 
 bool platform::networkAddress (SockAddr &addr_)
 {
-	struct sockaddr_in addr;
+	sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_addr   = Wifi_GetIPInfo (nullptr, nullptr, nullptr, nullptr);
 
@@ -85,7 +83,8 @@ bool platform::networkAddress (SockAddr &addr_)
 
 bool platform::init ()
 {
-	sassert (fatInitDefault (), "Failed to initialize fat");
+	fatInitDefault ();
+	defaultExceptionHandler ();
 
 	// turn off unused arm7 hardware
 	powerOff (PM_SOUND_AMP);
@@ -119,6 +118,9 @@ bool platform::init ()
 
 bool platform::loop ()
 {
+	if (!pmMainLoop ())
+		return false;
+
 	scanKeys ();
 
 	// check if the user wants to exit

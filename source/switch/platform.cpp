@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2021 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -27,9 +27,11 @@
 #include "imgui_deko3d.h"
 #include "imgui_nx.h"
 
-#include "imgui.h"
+#ifndef CLASSIC
+#include <imgui.h>
 
 #include <zstd.h>
+#endif
 
 #include <arpa/inet.h>
 #include <sys/stat.h>
@@ -337,7 +339,7 @@ void loadTextures ()
 	unsigned imageOffset = 0;
 	for (auto const &textureInfo : textureInfos)
 	{
-		struct stat st;
+		stat_t st;
 		if (::stat (textureInfo.path, &st) != 0)
 		{
 			std::fprintf (stderr, "stat(%s): %s\n", textureInfo.path, std::strerror (errno));
@@ -400,7 +402,7 @@ void loadTextures ()
 
 		// copy texture to image
 		dk::ImageView imageView (image);
-		cmdBuf.copyBufferToImage ({memBlock.getGpuAddr ()},
+		cmdBuf.copyBufferToImage ({memBlock.getGpuAddr (), 0, 0},
 		    imageView,
 		    {0, 0, 0, textureInfo.width, textureInfo.height, 1});
 		s_queue.submitCommands (cmdBuf.finishList ());
@@ -616,14 +618,14 @@ bool platform::init ()
 	return true;
 }
 
-bool platform::enableAP (bool const enableAP_,
+bool platform::enableAP (bool const enable_,
     std::string const &ssid_,
     std::string const &passphrase_)
 {
-	if (s_activeAP == enableAP_)
+	if (s_activeAP == enable_)
 		return true;
 
-	if (enableAP_)
+	if (enable_)
 	{
 		auto const ssidError = validateSSID (ssid_);
 		if (ssidError)
@@ -731,10 +733,37 @@ bool platform::networkVisible ()
 	if (s_activeAP)
 		return true;
 
+	static NifmInternetConnectionType lastType;
+	static std::uint32_t lastWifi;
+	static NifmInternetConnectionStatus lastStatus;
+	static Result lastResult;
+
 	NifmInternetConnectionType type;
 	std::uint32_t wifi;
 	NifmInternetConnectionStatus status;
-	if (R_FAILED (nifmGetInternetConnectionStatus (&type, &wifi, &status)))
+
+	auto const result = nifmGetInternetConnectionStatus (&type, &wifi, &status);
+	if (result != lastResult)
+		info ("nifmGetInternetConnectionStatus: result 0x%x -> 0x%x\n", lastResult, result);
+	lastResult = result;
+
+	if (R_SUCCEEDED (result))
+	{
+		if (type != lastType)
+			info ("nifmGetInternetConnectionStatus: type 0x%x -> 0x%x\n", lastType, type);
+
+		if (wifi != lastWifi)
+			info ("nifmGetInternetConnectionStatus: wifi 0x%x -> 0x%x\n", lastWifi, wifi);
+
+		if (status != lastStatus)
+			info ("nifmGetInternetConnectionStatus: status 0x%x -> 0x%x\n", lastStatus, status);
+
+		lastType   = type;
+		lastWifi   = wifi;
+		lastStatus = status;
+	}
+
+	if (R_FAILED (result))
 		return false;
 
 	return status == NifmInternetConnectionStatus_Connected;
@@ -752,16 +781,22 @@ bool platform::networkAddress (SockAddr &addr_)
 			return false;
 		}
 
-		addr_ = *reinterpret_cast<struct sockaddr_in *> (ipConfig.ip_addr);
+		addr_ = *reinterpret_cast<sockaddr_in *> (ipConfig.ip_addr);
 		return true;
 	}
 
-	struct sockaddr_in addr;
+	sockaddr_in addr;
 	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = gethostid ();
 
 	addr_ = addr;
 	return true;
+}
+
+std::string const &platform::hostname ()
+{
+	static std::string const hostname = "switch-ftpd";
+	return hostname;
 }
 
 bool platform::loop ()

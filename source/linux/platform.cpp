@@ -3,7 +3,7 @@
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
 //
-// Copyright (C) 2023 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,14 +22,17 @@
 
 #include "ftpServer.h"
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include <GLFW/glfw3.h>
 
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
+#include <unistd.h>
 
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -193,12 +196,30 @@ bool platform::networkVisible ()
 
 bool platform::networkAddress (SockAddr &addr_)
 {
-	struct sockaddr_in addr;
+	sockaddr_in addr;
 	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
 
 	addr_ = addr;
 	return true;
+}
+
+std::string const &platform::hostname ()
+{
+	static std::string hostname = "switch-ftpd.local";
+	if (hostname.empty ())
+	{
+		std::string buffer (256, '\0');
+		gethostname (buffer.data (), buffer.size ());
+
+		if (buffer.back () == 0) // check for truncation
+		{
+			hostname = std::move (buffer);
+			hostname.resize (std::strlen (hostname.data ()));
+		}
+	}
+
+	return hostname;
 }
 
 bool platform::loop ()

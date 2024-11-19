@@ -5,7 +5,7 @@
 //
 // The MIT License (MIT)
 //
-// Copyright (C) 2020 Michael Theall
+// Copyright (C) 2024 Michael Theall
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 
 #include "fs.h"
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include <deko3d.hpp>
 
@@ -42,6 +42,7 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+using stat_t = struct stat;
 
 #include <array>
 #include <cerrno>
@@ -123,7 +124,7 @@ void loadShaders (dk::UniqueDevice &device_)
 		/// \param path_ Path to file
 		static std::size_t getSize (char const *const path_)
 		{
-			struct stat st;
+			stat_t st;
 			auto const rc = ::stat (path_, &st);
 			if (rc != 0)
 			{
@@ -210,7 +211,7 @@ DkCmdList setupRenderState (dk::UniqueCmdBuf &cmdBuf_,
 	vertUBO.projMtx = glm::orthoRH_ZO (L, R, B, T, -1.0f, 1.0f);
 
 	// create command buffer to initialize/reset render state
-	cmdBuf_.setViewports (0, DkViewport{0.0f, 0.0f, width_, height_});
+	cmdBuf_.setViewports (0, DkViewport{0.0f, 0.0f, (float)width_, (float)height_, 0.0f, 0.0f});
 	cmdBuf_.bindShaders (DkStageFlag_GraphicsMask, {&s_shaders[0], &s_shaders[1]});
 	cmdBuf_.bindUniformBuffer (DkStage_Vertex,
 	    0,
@@ -328,7 +329,9 @@ void imgui::deko3d::init (dk::UniqueDevice &device_,
 
 	// copy font texture atlas to image view
 	dk::ImageView imageView{fontTexture};
-	cmdBuf_.copyBufferToImage ({memBlock.getGpuAddr ()}, imageView, {0, 0, 0, width, height, 1});
+	cmdBuf_.copyBufferToImage ({memBlock.getGpuAddr (), 0, 0},
+	    imageView,
+	    {0, 0, 0, (unsigned int)width, (unsigned int)height, 1});
 
 	// submit commands to transfer font texture
 	queue_.submitCommands (cmdBuf_.finishList ());
@@ -487,11 +490,14 @@ void imgui::deko3d::render (dk::UniqueDevice &device_,
 					clip.w = height;
 
 				// apply scissor boundaries
-				cmdBuf_.setScissors (
-				    0, DkScissor{clip.x, clip.y, clip.z - clip.x, clip.w - clip.y});
+				cmdBuf_.setScissors (0,
+				    DkScissor{(unsigned int)clip.x,
+				        (unsigned int)clip.y,
+				        (unsigned int)(clip.z - clip.x),
+				        (unsigned int)(clip.w - clip.y)});
 
 				// get texture handle
-				auto const textureHandle = reinterpret_cast<std::uintptr_t> (cmd.TextureId);
+				auto const textureHandle = cmd.TextureId;
 
 				// check if we need to bind a new texture
 				if (!boundTextureHandle || textureHandle != *boundTextureHandle)

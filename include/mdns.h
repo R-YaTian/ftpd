@@ -1,7 +1,12 @@
+
 // ftpd is a server implementation based on the following:
-// - RFC  959 (https://tools.ietf.org/html/rfc959)
-// - RFC 3659 (https://tools.ietf.org/html/rfc3659)
+// - RFC  959 (https://datatracker.ietf.org/doc/html/rfc959)
+// - RFC 3659 (https://datatracker.ietf.org/doc/html/rfc3659)
 // - suggested implementation details from https://cr.yp.to/ftp/filesystem.html
+//
+// ftpd implements mdns based on the following:
+// - RFC 1035 (https://datatracker.ietf.org/doc/html/rfc1035)
+// - RFC 6762 (https://datatracker.ietf.org/doc/html/rfc6762)
 //
 // Copyright (C) 2024 Michael Theall
 //
@@ -20,10 +25,16 @@
 
 #pragma once
 
-/// \brief Set language for getText
-/// \param language_ Language to set
-void setLanguage (char const *language_);
+#include "sockAddr.h"
+#include "socket.h"
 
-/// \brief Translate message
-/// \param text_ Text to translate
-__attribute__ ((__format_arg__ (1))) char const *getText (char const *text_);
+#include <cstddef>
+
+namespace mdns
+{
+void setHostname (std::string hostname_);
+
+UniqueSocket createSocket ();
+
+void handleSocket (Socket *socket_, SockAddr const &addr_);
+}

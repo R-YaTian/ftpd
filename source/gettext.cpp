@@ -60,7 +60,7 @@ bool read (fs::File &file_, std::uint32_t &data_, bool const le_)
 /// \param le_ Whether little-endian
 Table loadTable (fs::File &file_, off_t const offset_, std::uint32_t const count_, bool const le_)
 {
-	if (file_.seek (offset_) != 0)
+	if (file_.seek (offset_, SEEK_SET) != 0)
 		return {};
 
 	Table table;
@@ -89,7 +89,7 @@ std::string loadString (fs::File &file_, std::uint32_t const offset_, std::uint3
 	if (length_ == 0)
 		return {};
 
-	if (file_.seek (offset_) != 0)
+	if (file_.seek (offset_, SEEK_SET) != 0)
 		return {};
 
 	std::string str (length_, 0);
@@ -177,7 +177,7 @@ void setLanguage (char const *const language_)
 char const *getText (char const *const text_)
 {
 	auto it = s_translations.find (text_);
-	if (it != std::end (s_translations) && !it->second.empty ())
+	if (it != std::end(s_translations) && !it->first.empty() && !it->second.empty())
 		return it->second.c_str ();
 
 	return text_;

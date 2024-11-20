@@ -54,6 +54,9 @@ public:
 	/// \param path_ Path to config file
 	bool save (gsl::not_null<gsl::czstring> path_);
 
+	/// \brief Get language
+	std::string const &language () const;
+
 	/// \brief Get user
 	std::string const &user () const;
 

@@ -206,9 +206,9 @@ bool FtpConfig::save (gsl::not_null<gsl::czstring> const path_)
 
 	if (!m_language.empty ())
 		(void)std::fprintf (fp, "language=%s\n", m_language.c_str ());
-	if (!m_user.empty ())
+	if (!m_user.empty () && m_user.c_str ()[0] != '\0')
 		(void)std::fprintf (fp, "user=%s\n", m_user.c_str ());
-	if (!m_pass.empty ())
+	if (!m_pass.empty () && m_pass.c_str ()[0] != '\0')
 		(void)std::fprintf (fp, "pass=%s\n", m_pass.c_str ());
 	(void)std::fprintf (fp, "port=%u\n", m_port);
 
@@ -279,7 +279,7 @@ std::string const &FtpConfig::passphrase () const
 void FtpConfig::setLanguage (std::string language_)
 {
 	m_language = std::move (language_);
-	::setLanguage (language_.c_str ());
+	::setLanguage (m_language.c_str());
 }
 
 void FtpConfig::setUser (std::string user_)

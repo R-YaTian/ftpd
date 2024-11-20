@@ -1,48 +1,47 @@
-ifeq ($(strip $(ROMFS)),)
-$(error "Please include from a Makefile that defines ROMFS")
-endif
+TOPDIR ?= $(CURDIR)
 
-ifeq ($(strip $(TARGET)),)
-$(error "Please include from a Makefile that defines TARGET")
-endif
+.PHONY: pot mo
 
-# Note: Have your main target, e.g. $(OUTPUT).nro, depend on ROMFS_DEPS
+TARGET		:= ftpd
+APP_TITLE	:= ftpd is a ftp server implementation
+APP_VERSION	:= v3.2.1
 
-.PHONY: clean-mo
+MO_FILES := $(foreach lang,de_DE en_GB en_US es_ES fr_FR it_IT ja_JP nl_NL pt_PT ru_RU zh_CN zh_TW,$(TOPDIR)/locale/$(lang)/ftpd.mo)
 
-MO_FILES := $(foreach lang,de_DE en_GB en_US es_ES fr_FR it_IT ja_JP nl_NL pt_PT ru_RU zh_CN zh_TW,$(TOPDIR)/$(ROMFS)/locale/$(lang)/ftpd.mo)
+CFILES	 :=
 
-$(OUTPUT).nds:  $(MO_FILES)
-$(OUTPUT).3dsx: $(MO_FILES)
-$(OUTPUT).cia:  $(MO_FILES)
-$(OUTPUT).nro:  $(MO_FILES)
+CPPFILES :=	$(wildcard source/*.cpp) \
+            $(wildcard source/3ds/*.cpp) \
+            $(wildcard source/linux/*.cpp) \
+            $(wildcard source/nds/*.cpp) \
+            $(wildcard source/switch/*.cpp)
 
-$(MO_FILES): $(TOPDIR)/$(ROMFS)/locale/%/ftpd.mo: $(TOPDIR)/po/%/ftpd.po
+$(MO_FILES): $(TOPDIR)/locale/%/ftpd.mo: $(TOPDIR)/po/%/ftpd.po
 	@echo "Building $@"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	msgfmt -c --output-file=$@ $<
 
-$(TOPDIR)/po/%.po: $(TOPDIR)/po/$(notdir $(TARGET)).pot
+po/%/ftpd.po: $(TOPDIR)/po/$(notdir $(TARGET)).pot
 	@echo "Building $@"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@if [ -f $@ ]; \
 	then \
 		msgmerge --backup=off -qU $@ $< && touch $@; \
 	else \
-		msginit -i $< -l $*.UTF-8 -o $@; \
+		msginit -i $< --no-translator -l $*.UTF-8 -o $@; \
 	fi
 
-$(TOPDIR)/po/$(notdir $(TARGET)).pot: $(CFILES) $(CPPFILES) $(CXXFILES)
-	@echo "Building $@"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	xgettext -o $@ $^ -k_ -c -s \
+pot: $(CFILES) $(CPPFILES)
+	@echo "Building $(TARGET).pot"
+	xgettext -o $(TOPDIR)/po/$(TARGET).pot $^ -kgetText -c \
 		--from-code="UTF-8" \
 		--copyright-holder="Michael Theall" \
 		--package-name="$(APP_TITLE)" \
-		--package-version="$(APP_DESCRIPTION)" \
+		--package-version="$(APP_VERSION)" \
 		--msgid-bugs-address="pigman46@gmail.com"
 
-clean: clean-mo
-
-clean-mo:
+clean:
 	@$(RM) $(MO_FILES)
+	@$(RM) -rf locale
+
+mo: $(MO_FILES)

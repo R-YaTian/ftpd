@@ -10,6 +10,8 @@ endif()
 include(FetchContent)
 cmake_policy(SET CMP0169 OLD)
 
+set(LANGUAGES de_DE en_GB en_US es_ES fr_FR it_IT ja_JP nl_NL pt_PT ru_RU zh_CN zh_TW)
+
 FetchContent_Declare(gsl
 	URL https://github.com/microsoft/GSL/archive/refs/tags/v4.1.0.tar.gz
 	URL_HASH MD5=7e6883a254e73a8b2368a0d26efe68a7
@@ -41,7 +43,7 @@ if(NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS)
 	dkp_target_generate_symbol_list(${FTPD_TARGET})
 endif()
 
-target_compile_features(${FTPD_TARGET} PRIVATE cxx_std_20)
+target_compile_features(${FTPD_TARGET} PRIVATE cxx_std_23)
 target_include_directories(${FTPD_TARGET} PRIVATE include)
 target_compile_definitions(${FTPD_TARGET} PRIVATE
 	STATUS_STRING="${PROJECT_NAME} v${PROJECT_VERSION}"
@@ -71,7 +73,7 @@ endif()
 if(NINTENDO_SWITCH OR NINTENDO_3DS OR NINTENDO_DS)
 	target_compile_definitions(${FTPD_TARGET} PRIVATE
 		NO_IPV6
-		FTPDCONFIG="/config/${PROJECT_NAME}/${PROJECT_NAME}.cfg"
+		FTPDCONFIG="sdmc:/config/${PROJECT_NAME}/${PROJECT_NAME}.cfg"
 	)
 endif()
 
@@ -85,6 +87,7 @@ target_sources(${FTPD_TARGET} PRIVATE
 	include/platform.h
 	include/sockAddr.h
 	include/socket.h
+	include/gettext.h
 	source/fs.cpp
 	source/ftpConfig.cpp
 	source/ftpServer.cpp
@@ -94,6 +97,7 @@ target_sources(${FTPD_TARGET} PRIVATE
 	source/main.cpp
 	source/sockAddr.cpp
 	source/socket.cpp
+	source/gettext.cpp
 )
 
 if(NOT NINTENDO_DS)
@@ -197,7 +201,7 @@ if(NINTENDO_SWITCH)
 
 		add_custom_command(OUTPUT ${ZST}
 			COMMAND
-				convert ${CMAKE_CURRENT_SOURCE_DIR}/switch/gfx/${PNG} ${RGBA}
+				${CMAKE_CURRENT_SOURCE_DIR}/tools/png2rgba/png2rgba ${CMAKE_CURRENT_SOURCE_DIR}/switch/gfx/${PNG} ${RGBA}
 			COMMAND
 				zstd -f ${RGBA} -o ${ZST} --ultra -22
 			MAIN_DEPENDENCY
@@ -234,6 +238,13 @@ if(NINTENDO_SWITCH)
 			imgui_vsh
 	)
 
+	foreach(LANG ${LANGUAGES})
+		set(MO_FILE ${CMAKE_CURRENT_SOURCE_DIR}/locale/${LANG}/ftpd.mo)
+		add_custom_target(${LANG}_target DEPENDS ${MO_FILE})
+		dkp_set_target_file(${LANG}_target ${MO_FILE})
+		dkp_install_assets(${PROJECT_NAME}_romfs DESTINATION locale/${LANG} TARGETS ${LANG}_target)
+	endforeach()
+
 	nx_generate_nacp(${FTPD_TARGET}.nacp
 		NAME "${PROJECT_NAME} pro"
 		AUTHOR "(c) 2024 Michael Theall, Dave Murphy, TuxSH"
@@ -263,7 +274,6 @@ elseif(NINTENDO_3DS)
 		)
 		return()
 	endif()
-
 
 	target_compile_definitions(${FTPD_TARGET} PRIVATE
 		ANTI_ALIAS=0
@@ -320,6 +330,13 @@ elseif(NINTENDO_3DS)
 		TARGETS
 			gfx
 	)
+
+	foreach(LANG ${LANGUAGES})
+		set(MO_FILE ${CMAKE_CURRENT_SOURCE_DIR}/locale/${LANG}/ftpd.mo)
+		add_custom_target(${LANG}_target DEPENDS ${MO_FILE})
+		dkp_set_target_file(${LANG}_target ${MO_FILE})
+		dkp_install_assets(${PROJECT_NAME}_romfs DESTINATION locale/${LANG} TARGETS ${LANG}_target)
+	endforeach()
 
 	ctr_generate_smdh(${FTPD_TARGET}.smdh
 		NAME "${PROJECT_NAME} pro"

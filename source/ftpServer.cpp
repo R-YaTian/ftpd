@@ -115,8 +115,8 @@ std::pair<std::string, std::string> const s_languageMap[] = {
     {"Nederlands",           "nl_NL"},
     {"Português (Portugal)", "pt_PT"},
     {"Русский",              "ru_RU"},
-    {"中文（简体）",         "zh_CN"},
-    {"中文（繁體）",         "zh_TW"},
+    {"中文（简体）",          "zh_CN"},
+    {"中文（繁體）",          "zh_TW"},
     // clang-format on
 };
 
@@ -817,6 +817,7 @@ void FtpServer::showSettings ()
 		{
 			static auto const defaults = FtpConfig::create ();
 
+			m_languageSetting = 1; // en_US
 			m_userSetting     = defaults->user ();
 			m_passSetting     = defaults->pass ();
 			m_hostnameSetting = defaults->hostname ();

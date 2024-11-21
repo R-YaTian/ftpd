@@ -867,9 +867,9 @@ void FtpServer::showAbout ()
 		ImGui::Text (getText("Renderer: %s"), io.BackendRendererName);
 
 #ifdef __3DS__
-		ImGui::Text ("Command Buffer Usage: %.1f%%", 100.0f * C3D_GetCmdBufUsage ());
-		ImGui::Text ("GPU Processing Usage: %.1f%%", 6.0f * C3D_GetProcessingTime ());
-		ImGui::Text ("GPU Drawing Usage: %.1f%%", 6.0f * C3D_GetDrawingTime ());
+		ImGui::Text (getText("Command Buffer Usage: %.1f%%"), 100.0f * C3D_GetCmdBufUsage ());
+		ImGui::Text (getText("GPU Processing Usage: %.1f%%"), 6.0f * C3D_GetProcessingTime ());
+		ImGui::Text (getText("GPU Drawing Usage: %.1f%%"), 6.0f * C3D_GetDrawingTime ());
 #endif
 
 		if (ImGui::Button (getText("OK"), ImVec2 (100, 0)))
@@ -879,7 +879,7 @@ void FtpServer::showAbout ()
 		}
 
 		ImGui::Separator ();
-		if (ImGui::TreeNode ("Connections"))
+		if (ImGui::TreeNode (getText("Connections")))
 		{
 			for (auto const &session : m_sessions)
 				session->drawConnections ();

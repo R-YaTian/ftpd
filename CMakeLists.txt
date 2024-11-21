@@ -349,6 +349,19 @@ elseif(NINTENDO_3DS)
 		SMDH ${FTPD_TARGET}.smdh
 		ROMFS ${PROJECT_NAME}_romfs
 	)
+
+	list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+	include(Tools3DS)
+	if(FTPD_CLASSIC)
+		set(RSF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/meta/ftpd-classic-cia.rsf)
+	else()
+		set(RSF_PATH ${CMAKE_CURRENT_SOURCE_DIR}/meta/ftpd-cia.rsf)
+	endif()
+	add_cia_target(${FTPD_TARGET}
+				   ${RSF_PATH}
+				   ${CMAKE_CURRENT_SOURCE_DIR}/meta/banner.png
+				   ${CMAKE_CURRENT_SOURCE_DIR}/meta/audio.wav
+				   ${PROJECT_VERSION})
 elseif(NINTENDO_DS)
 	target_link_libraries(${FTPD_TARGET} PRIVATE
 		dswifi9

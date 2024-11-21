@@ -7,200 +7,217 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ftpd pro v3.1.0\n"
 "Report-Msgid-Bugs-To: pigman46@gmail.com\n"
-"POT-Creation-Date: 2021-06-13 11:14-0500\n"
-"PO-Revision-Date: 2024-07-29 18:45+0800\n"
+"POT-Creation-Date: 2024-11-21 15:10+0800\n"
+"PO-Revision-Date: 2024-11-21 15:30+0800\n"
+"Last-Translator: R-YaTian\n"
 "Language-Team: \n"
+"Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.0\n"
-"Last-Translator: R-YaTian\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"Language: zh_TW\n"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:359
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:422
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:607
-msgid "About"
-msgstr "關於"
+#: source/ftpServer.cpp:284
+msgid "Waiting on WiFi"
+msgstr "正在等待網路"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:78
-#, c-format
-msgid "Accepted connection from [%s]:%u\n"
-msgstr "已接受 [%s]:%u 的連接\n"
+#: source/ftpServer.cpp:349
+msgid "Waiting on WiFi..."
+msgstr "正在等待網路..."
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:500
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:520
-msgid "Apply"
-msgstr "套用"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:503
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:526
-msgid "Cancel"
-msgstr "取消"
-
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:42
-#, c-format
-msgid "Closing connection to [%s]:%u\n"
-msgstr "正在關閉 [%s]:%u 的連接\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:567
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:155
-#, c-format
-msgid "Connected to [%s]:%u\n"
-msgstr "已連接 [%s]:%u\n"
-
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:148
-#, c-format
-msgid "Connecting to [%s]:%u\n"
-msgstr "正在連接 [%s]:%u\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:480
-msgid "Enable Access Point"
-msgstr "啟用存取點"
-
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1398
-msgid "Exceeded command buffer size\n"
-msgstr "超過命令緩沖區大小\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:563
-msgid "Failed to save config\n"
-msgstr "無法儲存設定\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:476
-msgid "Get mtime"
-msgstr "獲取時間"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:444
-msgid "Language"
-msgstr "語言"
-
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:2260
-#, c-format
-msgid "Listening on [%s]:%u\n"
-msgstr "正在監聽 [%s]:%u\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:208
+#: source/ftpServer.cpp:367
 msgid "Logs"
 msgstr "日誌"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:353
-msgid "Menu"
-msgstr "選單"
-
-#. TRANSLATORS: \xee\x80\x83 (Y button)
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:351
-msgid "Menu "
-msgstr "選單 "
-
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1556
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1587
-msgid "Not enough space for response\n"
-msgstr "沒有足夠響應的空間\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:617
-msgid "OK"
-msgstr "OK"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:490
-msgid "Passphrase"
-msgstr "密碼"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:462
-msgid "Password"
-msgstr "密碼"
-
-#. peer closed connection
-#: /home/mtheall/workspace/ftpd/source/ftpSession.cpp:1413
-msgid "Peer closed connection\n"
-msgstr "用戶已停止連線\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:614
-#, c-format
-msgid "Platform: %s"
-msgstr "平臺: %s"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:467
-msgid "Port"
-msgstr "端口"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:615
-#, c-format
-msgid "Renderer: %s"
-msgstr "渲染器: %s"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:502
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:524
-msgid "Reset"
-msgstr "重置"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:482
-msgid "SSID"
-msgstr "SSID"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:501
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:522
-msgid "Save"
-msgstr "儲存"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:221
+#: source/ftpServer.cpp:380
 msgid "Sessions"
 msgstr "會話"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:356
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:413
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:437
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:441
-msgid "Settings"
-msgstr "設定"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:460
-msgid "Upload Log"
-msgstr "上載日誌"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:319
+#: source/ftpServer.cpp:490
 #, c-format
 msgid "Started server at %s\n"
 msgstr "已啟動服務 %s\n"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:39
-#, c-format
-msgid "Stop listening on [%s]:%u\n"
-msgstr "停止監聽 [%s]:%u\n"
-
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:338
+#: source/ftpServer.cpp:523
 #, c-format
 msgid "Stopped server at %s\n"
 msgstr "已停止服務 %s\n"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:457
+#. TRANSLATORS: \xee\x80\x83 (Y button)
+#: source/ftpServer.cpp:536
+msgid "Menu "
+msgstr "選單 "
+
+#: source/ftpServer.cpp:538
+msgid "Menu"
+msgstr "選單"
+
+#: source/ftpServer.cpp:541 source/ftpServer.cpp:655 source/ftpServer.cpp:679
+#: source/ftpServer.cpp:683
+msgid "Settings"
+msgstr "設定"
+
+#: source/ftpServer.cpp:544
+msgid "Upload Log"
+msgstr "上載日誌"
+
+#: source/ftpServer.cpp:593 source/ftpServer.cpp:664 source/ftpServer.cpp:859
+msgid "About"
+msgstr "關於"
+
+#: source/ftpServer.cpp:598
+msgid "Quit"
+msgstr "離開"
+
+#: source/ftpServer.cpp:686
+msgid "Language"
+msgstr "語言"
+
+#: source/ftpServer.cpp:699
 msgid "User"
 msgstr "用戶暱稱"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:125
-msgid "Waiting on WiFi"
-msgstr "正在等待網路"
+#: source/ftpServer.cpp:704
+msgid "Password"
+msgstr "密碼"
 
-#: /home/mtheall/workspace/ftpd/source/ftpServer.cpp:190
-msgid "Waiting on WiFi..."
-msgstr "正在等待網路..."
+#: source/ftpServer.cpp:709
+msgid "Hostname"
+msgstr "主機名稱"
 
-#: /home/mtheall/workspace/ftpd/source/3ds/platform.cpp:214
-msgid "WiFi connected\n"
-msgstr "已連接網路\n"
+#: source/ftpServer.cpp:714
+msgid "Port"
+msgstr "端口"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:246
-msgid "no"
-msgstr "否"
+#: source/ftpServer.cpp:723
+msgid "Get mtime"
+msgstr "獲取時間"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:196
-msgid "off"
-msgstr "OFF"
+#: source/ftpServer.cpp:727
+msgid "Enable Access Point"
+msgstr "啟用存取點"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:196
+#: source/ftpServer.cpp:729
+msgid "SSID"
+msgstr "SSID"
+
+#: source/ftpServer.cpp:737
+msgid "Passphrase"
+msgstr "密碼"
+
+#: source/ftpServer.cpp:747 source/ftpServer.cpp:767
+msgid "Apply"
+msgstr "套用"
+
+#: source/ftpServer.cpp:748 source/ftpServer.cpp:769
+msgid "Save"
+msgstr "儲存"
+
+#: source/ftpServer.cpp:749 source/ftpServer.cpp:771
+msgid "Reset"
+msgstr "重置"
+
+#: source/ftpServer.cpp:750 source/ftpServer.cpp:773
+msgid "Cancel"
+msgstr "取消"
+
+#: source/ftpServer.cpp:813
+msgid "Failed to save config\n"
+msgstr "無法儲存設定\n"
+
+#: source/ftpServer.cpp:866
+#, c-format
+msgid "Platform: %s"
+msgstr "平臺: %s"
+
+#: source/ftpServer.cpp:867
+#, c-format
+msgid "Renderer: %s"
+msgstr "渲染器: %s"
+
+#: source/ftpServer.cpp:870
+#, c-format
+msgid "Command Buffer Usage: %.1f%%"
+msgstr "命令緩沖區負荷: %.1f%%"
+
+#: source/ftpServer.cpp:871
+#, c-format
+msgid "GPU Processing Usage: %.1f%%"
+msgstr "GPU 處理負荷: %.1f%%"
+
+#: source/ftpServer.cpp:872
+#, c-format
+msgid "GPU Drawing Usage: %.1f%%"
+msgstr "GPU 繪圖負荷: %.1f%%"
+
+#: source/ftpServer.cpp:875
+msgid "OK"
+msgstr "OK"
+
+#: source/ftpServer.cpp:882
+msgid "Connections"
+msgstr "連線狀態"
+
+#: source/ftpSession.cpp:722 source/socket.cpp:136
+#, c-format
+msgid "Connected to [%s]:%u\n"
+msgstr "已連接 [%s]:%u\n"
+
+#: source/ftpSession.cpp:1631
+msgid "Exceeded command buffer size\n"
+msgstr "超過命令緩沖區大小\n"
+
+#. peer closed connection
+#: source/ftpSession.cpp:1646
+msgid "Peer closed connection\n"
+msgstr "用戶已停止連線\n"
+
+#: source/ftpSession.cpp:1791 source/ftpSession.cpp:1825
+msgid "Not enough space for response\n"
+msgstr "沒有足夠響應的空間\n"
+
+#: source/ftpSession.cpp:2588
+#, c-format
+msgid "Listening on [%s]:%u\n"
+msgstr "正在監聽 [%s]:%u\n"
+
+#: source/socket.cpp:40
+#, c-format
+msgid "Stop listening on [%s]:%u\n"
+msgstr "停止監聽 [%s]:%u\n"
+
+#: source/socket.cpp:43
+#, c-format
+msgid "Closing connection to [%s]:%u\n"
+msgstr "正在關閉 [%s]:%u 的連接\n"
+
+#: source/socket.cpp:79
+#, c-format
+msgid "Accepted connection from [%s]:%u\n"
+msgstr "已接受 [%s]:%u 的連接\n"
+
+#: source/socket.cpp:129
+#, c-format
+msgid "Connecting to [%s]:%u\n"
+msgstr "正在連接 [%s]:%u\n"
+
+#: source/socket.cpp:179
 msgid "on"
 msgstr "ON"
 
-#: /home/mtheall/workspace/ftpd/source/socket.cpp:246
+#: source/socket.cpp:179
+msgid "off"
+msgstr "OFF"
+
+#: source/socket.cpp:229
 msgid "yes"
 msgstr "是"
+
+#: source/socket.cpp:229
+msgid "no"
+msgstr "否"
+
+#: source/3ds/platform.cpp:255
+msgid "WiFi connected\n"
+msgstr "已連接網路\n"

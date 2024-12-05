@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ftpd pro v3.2.1\n"
 "Report-Msgid-Bugs-To: pigman46@gmail.com\n"
-"POT-Creation-Date: 2024-11-21 15:10+0800\n"
+"POT-Creation-Date: 2024-12-05 11:29+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,206 +17,210 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: source/ftpServer.cpp:284
+#: source/ftpServer.cpp:286
 msgid "Waiting on WiFi"
 msgstr ""
 
-#: source/ftpServer.cpp:349
+#: source/ftpServer.cpp:351
 msgid "Waiting on WiFi..."
 msgstr ""
 
-#: source/ftpServer.cpp:367
+#: source/ftpServer.cpp:369
 msgid "Logs"
 msgstr ""
 
-#: source/ftpServer.cpp:380
+#: source/ftpServer.cpp:382
 msgid "Sessions"
 msgstr ""
 
-#: source/ftpServer.cpp:490
+#: source/ftpServer.cpp:492
 #, c-format
 msgid "Started server at %s\n"
 msgstr ""
 
-#: source/ftpServer.cpp:523
+#: source/ftpServer.cpp:525
 #, c-format
 msgid "Stopped server at %s\n"
 msgstr ""
 
 #. TRANSLATORS: \xee\x80\x83 (Y button)
-#: source/ftpServer.cpp:536
+#: source/ftpServer.cpp:538
 msgid "Menu "
 msgstr ""
 
-#: source/ftpServer.cpp:538
+#: source/ftpServer.cpp:540
 msgid "Menu"
 msgstr ""
 
-#: source/ftpServer.cpp:541 source/ftpServer.cpp:655 source/ftpServer.cpp:679
-#: source/ftpServer.cpp:683
+#: source/ftpServer.cpp:543 source/ftpServer.cpp:659 source/ftpServer.cpp:683
+#: source/ftpServer.cpp:687
 msgid "Settings"
 msgstr ""
 
-#: source/ftpServer.cpp:544
+#: source/ftpServer.cpp:546
 msgid "Upload Log"
 msgstr ""
 
-#: source/ftpServer.cpp:593 source/ftpServer.cpp:664 source/ftpServer.cpp:859
+#: source/ftpServer.cpp:595 source/ftpServer.cpp:668 source/ftpServer.cpp:867
 msgid "About"
 msgstr ""
 
-#: source/ftpServer.cpp:598
+#: source/ftpServer.cpp:600
 msgid "Quit"
 msgstr ""
 
-#: source/ftpServer.cpp:686
+#: source/ftpServer.cpp:690
 msgid "Language"
 msgstr ""
 
-#: source/ftpServer.cpp:699
+#: source/ftpServer.cpp:703
 msgid "User"
 msgstr ""
 
-#: source/ftpServer.cpp:704
+#: source/ftpServer.cpp:708
 msgid "Password"
 msgstr ""
 
-#: source/ftpServer.cpp:709
+#: source/ftpServer.cpp:713
 msgid "Hostname"
 msgstr ""
 
-#: source/ftpServer.cpp:714
+#: source/ftpServer.cpp:718
 msgid "Port"
 msgstr ""
 
-#: source/ftpServer.cpp:723
+#: source/ftpServer.cpp:727
+msgid "Deflate Level"
+msgstr ""
+
+#: source/ftpServer.cpp:730
 msgid "Get mtime"
 msgstr ""
 
-#: source/ftpServer.cpp:727
+#: source/ftpServer.cpp:734
 msgid "Enable Access Point"
 msgstr ""
 
-#: source/ftpServer.cpp:729
+#: source/ftpServer.cpp:736
 msgid "SSID"
 msgstr ""
 
-#: source/ftpServer.cpp:737
+#: source/ftpServer.cpp:744
 msgid "Passphrase"
 msgstr ""
 
-#: source/ftpServer.cpp:747 source/ftpServer.cpp:767
+#: source/ftpServer.cpp:754 source/ftpServer.cpp:774
 msgid "Apply"
 msgstr ""
 
-#: source/ftpServer.cpp:748 source/ftpServer.cpp:769
+#: source/ftpServer.cpp:755 source/ftpServer.cpp:776
 msgid "Save"
 msgstr ""
 
-#: source/ftpServer.cpp:749 source/ftpServer.cpp:771
+#: source/ftpServer.cpp:756 source/ftpServer.cpp:778
 msgid "Reset"
 msgstr ""
 
-#: source/ftpServer.cpp:750 source/ftpServer.cpp:773
+#: source/ftpServer.cpp:757 source/ftpServer.cpp:780
 msgid "Cancel"
 msgstr ""
 
-#: source/ftpServer.cpp:813
+#: source/ftpServer.cpp:821
 msgid "Failed to save config\n"
 msgstr ""
 
-#: source/ftpServer.cpp:866
+#: source/ftpServer.cpp:874
 #, c-format
 msgid "Platform: %s"
 msgstr ""
 
-#: source/ftpServer.cpp:867
+#: source/ftpServer.cpp:875
 #, c-format
 msgid "Renderer: %s"
 msgstr ""
 
-#: source/ftpServer.cpp:870
+#: source/ftpServer.cpp:878
 #, c-format
 msgid "Command Buffer Usage: %.1f%%"
 msgstr ""
 
-#: source/ftpServer.cpp:871
+#: source/ftpServer.cpp:879
 #, c-format
 msgid "GPU Processing Usage: %.1f%%"
 msgstr ""
 
-#: source/ftpServer.cpp:872
+#: source/ftpServer.cpp:880
 #, c-format
 msgid "GPU Drawing Usage: %.1f%%"
 msgstr ""
 
-#: source/ftpServer.cpp:875
+#: source/ftpServer.cpp:883
 msgid "OK"
 msgstr ""
 
-#: source/ftpServer.cpp:882
+#: source/ftpServer.cpp:890
 msgid "Connections"
 msgstr ""
 
-#: source/ftpSession.cpp:722 source/socket.cpp:136
+#: source/ftpSession.cpp:729 source/socket.cpp:138
 #, c-format
 msgid "Connected to [%s]:%u\n"
 msgstr ""
 
-#: source/ftpSession.cpp:1631
+#: source/ftpSession.cpp:1703
 msgid "Exceeded command buffer size\n"
 msgstr ""
 
 #. peer closed connection
-#: source/ftpSession.cpp:1646
+#: source/ftpSession.cpp:1718
 msgid "Peer closed connection\n"
 msgstr ""
 
-#: source/ftpSession.cpp:1791 source/ftpSession.cpp:1825
+#: source/ftpSession.cpp:1863 source/ftpSession.cpp:1897
 msgid "Not enough space for response\n"
 msgstr ""
 
-#: source/ftpSession.cpp:2588
+#: source/ftpSession.cpp:2878
 #, c-format
 msgid "Listening on [%s]:%u\n"
 msgstr ""
 
-#: source/socket.cpp:40
+#: source/socket.cpp:42
 #, c-format
 msgid "Stop listening on [%s]:%u\n"
 msgstr ""
 
-#: source/socket.cpp:43
+#: source/socket.cpp:45
 #, c-format
 msgid "Closing connection to [%s]:%u\n"
 msgstr ""
 
-#: source/socket.cpp:79
+#: source/socket.cpp:81
 #, c-format
 msgid "Accepted connection from [%s]:%u\n"
 msgstr ""
 
-#: source/socket.cpp:129
+#: source/socket.cpp:131
 #, c-format
 msgid "Connecting to [%s]:%u\n"
 msgstr ""
 
-#: source/socket.cpp:179
+#: source/socket.cpp:181
 msgid "on"
 msgstr ""
 
-#: source/socket.cpp:179
+#: source/socket.cpp:181
 msgid "off"
 msgstr ""
 
-#: source/socket.cpp:229
+#: source/socket.cpp:231
 msgid "yes"
 msgstr ""
 
-#: source/socket.cpp:229
+#: source/socket.cpp:231
 msgid "no"
 msgstr ""
 
-#: source/3ds/platform.cpp:255
+#: source/3ds/platform.cpp:257
 msgid "WiFi connected\n"
 msgstr ""

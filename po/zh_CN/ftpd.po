@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ftpd pro v3.1.0\n"
 "Report-Msgid-Bugs-To: pigman46@gmail.com\n"
 "POT-Creation-Date: 2024-11-21 15:10+0800\n"
-"PO-Revision-Date: 2024-11-21 15:30+0800\n"
+"PO-Revision-Date: 2024-12-05 11:30+0800\n"
 "Last-Translator: R-YaTian\n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -89,6 +89,10 @@ msgstr "主机名"
 #: source/ftpServer.cpp:714
 msgid "Port"
 msgstr "端口"
+
+#: source/ftpServer.cpp:727
+msgid "Deflate Level"
+msgstr "Deflate 等级"
 
 #: source/ftpServer.cpp:723
 msgid "Get mtime"

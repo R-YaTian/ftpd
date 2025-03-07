@@ -2,6 +2,7 @@
 #include <png.h>
 
 constexpr auto VERSION = 1.0;
+bool swapBR = false;
 
 unsigned char* LoadFromFile(const char *filePath, unsigned int* size)
 {
@@ -13,7 +14,7 @@ unsigned char* LoadFromFile(const char *filePath, unsigned int* size)
 
     if (png_image_begin_read_from_file(&img, filePath))
     {
-        img.format = PNG_FORMAT_RGBA;
+        img.format = swapBR ? PNG_FORMAT_BGRA : PNG_FORMAT_RGBA;
         pBuffer = new unsigned char[PNG_IMAGE_SIZE(img)];
 
         if (png_image_finish_read(&img , NULL, pBuffer, 0, NULL)) {
@@ -35,10 +36,20 @@ unsigned char* LoadFromFile(const char *filePath, unsigned int* size)
 
 int main(int argc,char *argv[])
 {
-    if(argc != 3) {
+    if(argc < 3) {
         printf("png2rgba Version %.1f\n", VERSION);
-        printf("Usage: png2rgba pngFile rgbaFile\n");
+        printf("Usage: png2rgba pngFile rgbaFile (--swapbr)\n");
         return 1;
+    }
+
+    if(argc == 4)
+    {
+        if(strcmp(argv[3], "--swapbr") == 0) {
+            swapBR = true;
+        } else {
+            printf("Unknown option: %s\n", argv[3]);
+            return 1;
+        }
     }
 
     unsigned int fSize = 0;

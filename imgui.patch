@@ -1,7 +1,7 @@
 --- imgui.cpp
 +++ imgui.cpp
-@@ -13711,7 +13711,13 @@
-         g.NavWindowingListWindow = FindWindowByName("###NavWindowingList");
+@@ -13857,7 +13857,13 @@
+         g.NavWindowingListWindow = FindWindowByName("##NavWindowingOverlay");
      const ImGuiViewport* viewport = GetMainViewport();
      SetNextWindowSizeConstraints(ImVec2(viewport->Size.x * 0.20f, viewport->Size.y * 0.20f), ImVec2(FLT_MAX, FLT_MAX));
 +#ifdef __3DS__
@@ -12,5 +12,5 @@
      SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 +#endif
      PushStyleVar(ImGuiStyleVar_WindowPadding, g.Style.WindowPadding * 2.0f);
-     Begin("###NavWindowingList", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
+     Begin("##NavWindowingOverlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings);
      if (g.ContextName[0] != 0)

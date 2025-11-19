@@ -2,30 +2,48 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ftpd VERSION 3.2.1)
 
+set(LANGUAGES de_DE en_GB en_US es_ES fr_FR it_IT ja_JP nl_NL pt_PT ru_RU zh_CN zh_TW)
+
+set(FTPD_PATCH "-2")
+
+find_package(Patch REQUIRED)
+
 if(CMAKE_EXPORT_COMPILE_COMMANDS)
 	list(APPEND CMAKE_C_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
 	list(APPEND CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 endif()
 
-include(FetchContent)
-cmake_policy(SET CMP0169 OLD)
+set(GSL_TARBALL ${CMAKE_CURRENT_BINARY_DIR}/v4.2.0.tar.gz)
+set(GSL_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/gsl-src/GSL-4.2.0)
 
-set(LANGUAGES de_DE en_GB en_US es_ES fr_FR it_IT ja_JP nl_NL pt_PT ru_RU zh_CN zh_TW)
+if(NOT EXISTS ${GSL_TARBALL})
+	file(DOWNLOAD
+		https://github.com/microsoft/GSL/archive/refs/tags/v4.2.0.tar.gz
+		${GSL_TARBALL}
+	)
+	file(ARCHIVE_EXTRACT
+		INPUT ${GSL_TARBALL}
+		DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/gsl-src
+	)
+endif()
 
-FetchContent_Declare(gsl
-	URL https://github.com/microsoft/GSL/archive/refs/tags/v4.1.0.tar.gz
-	URL_HASH MD5=7e6883a254e73a8b2368a0d26efe68a7
-	DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-)
-FetchContent_Populate(gsl)
+set(IMGUI_TARBALL ${CMAKE_CURRENT_BINARY_DIR}/v1.91.8.tar.gz)
+set(IMGUI_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/imgui-src/imgui-1.91.8)
 
-FetchContent_Declare(imgui
-	URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.8.tar.gz
-	URL_HASH MD5=208c0884011db9e177d1f44a5054c85c
-	DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-	PATCH_COMMAND patch -i ${CMAKE_CURRENT_SOURCE_DIR}/imgui.patch
-)
-FetchContent_Populate(imgui)
+if(NOT EXISTS ${IMGUI_TARBALL})
+	file(DOWNLOAD
+		https://github.com/ocornut/imgui/archive/refs/tags/v1.91.8.tar.gz
+		${IMGUI_TARBALL}
+	)
+	file(ARCHIVE_EXTRACT
+		INPUT ${IMGUI_TARBALL}
+		DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/imgui-src
+	)
+	execute_process(
+		COMMAND ${Patch_EXECUTABLE} -i "${CMAKE_CURRENT_SOURCE_DIR}/imgui.patch"
+		WORKING_DIRECTORY "${IMGUI_SOURCE_DIR}"
+	)
+endif()
 
 find_package(ZLIB REQUIRED)
 
@@ -39,7 +57,7 @@ endif()
 
 add_executable(${FTPD_TARGET})
 
-target_include_directories(${FTPD_TARGET} PRIVATE ${gsl_SOURCE_DIR}/include)
+target_include_directories(${FTPD_TARGET} PRIVATE ${GSL_SOURCE_DIR}/include)
 
 target_link_libraries(${FTPD_TARGET} PRIVATE ZLIB::ZLIB)
 
@@ -50,7 +68,7 @@ endif()
 target_compile_features(${FTPD_TARGET} PRIVATE cxx_std_23)
 target_include_directories(${FTPD_TARGET} PRIVATE include)
 target_compile_definitions(${FTPD_TARGET} PRIVATE
-	STATUS_STRING="${PROJECT_NAME} v${PROJECT_VERSION}"
+	STATUS_STRING="${PROJECT_NAME} v${PROJECT_VERSION}${FTPD_PATCH}"
 	IMGUI_DISABLE_OBSOLETE_FUNCTIONS=1
 	IMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS=1
 )
@@ -112,22 +130,22 @@ if(NOT NINTENDO_DS)
 endif()
 
 if(NOT FTPD_CLASSIC AND NOT NINTENDO_DS)
-	target_include_directories(${FTPD_TARGET} PRIVATE ${imgui_SOURCE_DIR})
+	target_include_directories(${FTPD_TARGET} PRIVATE ${IMGUI_SOURCE_DIR})
 
 	target_sources(${FTPD_TARGET} PRIVATE
 		include/licenses.h
 		source/licenses.cpp
 
-		${imgui_SOURCE_DIR}/imconfig.h
-		${imgui_SOURCE_DIR}/imgui.h
-		${imgui_SOURCE_DIR}/imgui.cpp
-		${imgui_SOURCE_DIR}/imgui_draw.cpp
-		${imgui_SOURCE_DIR}/imgui_internal.h
-		${imgui_SOURCE_DIR}/imgui_tables.cpp
-		${imgui_SOURCE_DIR}/imgui_widgets.cpp
-		${imgui_SOURCE_DIR}/imstb_rectpack.h
-		${imgui_SOURCE_DIR}/imstb_textedit.h
-		${imgui_SOURCE_DIR}/imstb_truetype.h
+		${IMGUI_SOURCE_DIR}/imconfig.h
+		${IMGUI_SOURCE_DIR}/imgui.h
+		${IMGUI_SOURCE_DIR}/imgui.cpp
+		${IMGUI_SOURCE_DIR}/imgui_draw.cpp
+		${IMGUI_SOURCE_DIR}/imgui_internal.h
+		${IMGUI_SOURCE_DIR}/imgui_tables.cpp
+		${IMGUI_SOURCE_DIR}/imgui_widgets.cpp
+		${IMGUI_SOURCE_DIR}/imstb_rectpack.h
+		${IMGUI_SOURCE_DIR}/imstb_textedit.h
+		${IMGUI_SOURCE_DIR}/imstb_truetype.h
 	)
 endif()
 
@@ -149,8 +167,8 @@ if(NINTENDO_SWITCH)
 	if(FTPD_CLASSIC)
 		nx_generate_nacp(${FTPD_TARGET}.nacp
 			NAME "${PROJECT_NAME} classic"
-			AUTHOR "(c) 2024 Michael Theall, Dave Murphy, TuxSH"
-			VERSION ${PROJECT_VERSION}
+			AUTHOR "(c) 2025 Michael Theall, Dave Murphy, TuxSH"
+			VERSION "${PROJECT_VERSION}${FTPD_PATCH}"
 		)
 
 		nx_create_nro(${FTPD_TARGET}
@@ -190,7 +208,7 @@ if(NINTENDO_SWITCH)
 	nx_add_shader_program(imgui_fsh source/switch/imgui_fsh.glsl frag)
 	nx_add_shader_program(imgui_vsh source/switch/imgui_vsh.glsl vert)
 
-	foreach(PNG 
+	foreach(PNG
 		airplane_icon.png
 		battery_icon.png
 		charging_icon.png
@@ -250,9 +268,9 @@ if(NINTENDO_SWITCH)
 	endforeach()
 
 	nx_generate_nacp(${FTPD_TARGET}.nacp
-		NAME "${PROJECT_NAME} pro"
-		AUTHOR "(c) 2024 Michael Theall, Dave Murphy, TuxSH"
-		VERSION ${PROJECT_VERSION}
+		NAME "${PROJECT_NAME} 11th Anniversary Edition"
+		AUTHOR "(c) 2025 Michael Theall, Dave Murphy, TuxSH"
+		VERSION "${PROJECT_VERSION}${FTPD_PATCH}"
 	)
 
 	nx_create_nro(${FTPD_TARGET}
@@ -268,8 +286,8 @@ elseif(NINTENDO_3DS)
 	if(FTPD_CLASSIC)
 		ctr_generate_smdh(${FTPD_TARGET}.smdh
 			NAME "${PROJECT_NAME} classic"
-			DESCRIPTION "v${PROJECT_VERSION}"
-			AUTHOR "(c) 2024 Michael Theall, Dave Murphy, TuxSH"
+			DESCRIPTION "v${PROJECT_VERSION}${FTPD_PATCH}"
+			AUTHOR "(c) 2025 Michael Theall, Dave Murphy, TuxSH"
 			ICON meta/icon.png
 		)
 
@@ -344,8 +362,8 @@ elseif(NINTENDO_3DS)
 
 	ctr_generate_smdh(${FTPD_TARGET}.smdh
 		NAME "${PROJECT_NAME} pro"
-		DESCRIPTION "v${PROJECT_VERSION}"
-		AUTHOR "(c) 2024 Michael Theall, Dave Murphy, TuxSH"
+		DESCRIPTION "v${PROJECT_VERSION}${FTPD_PATCH}"
+		AUTHOR "(c) 2025 Michael Theall, Dave Murphy, TuxSH"
 		ICON meta/icon.png
 	)
 
@@ -378,8 +396,8 @@ elseif(NINTENDO_DS)
 
 	nds_create_rom(${FTPD_TARGET}
 		NAME "${PROJECT_NAME} classic"
-		SUBTITLE1 "v${PROJECT_VERSION}"
-		SUBTITLE2 "(c) 2024 mtheall"
+		SUBTITLE1 "v${PROJECT_VERSION}${FTPD_PATCH}"
+		SUBTITLE2 "(c) 2025 mtheall"
 		ICON nds/icon.bmp
 	)
 else()
@@ -398,10 +416,10 @@ else()
 	target_sources(${FTPD_TARGET} PRIVATE
 		source/linux/platform.cpp
 
-		${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-		${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-		${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-		${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
-		${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3_loader.h
+		${IMGUI_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+		${IMGUI_SOURCE_DIR}/backends/imgui_impl_glfw.h
+		${IMGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+		${IMGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.h
+		${IMGUI_SOURCE_DIR}/backends/imgui_impl_opengl3_loader.h
 	)
 endif()

@@ -1071,7 +1071,7 @@ int FtpSession::fillDirent (stat_t const &st_, std::string_view const path_, cha
 			if (size - pos < std::strlen (header))
 				return EAGAIN;
 
-			std::strcpy (&buffer[pos], header);
+			std::strncpy (&buffer[pos], header, size - pos);
 			pos += std::strlen (header);
 
 			// append permission

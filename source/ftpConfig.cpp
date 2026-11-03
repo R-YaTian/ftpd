@@ -288,9 +288,9 @@ std::string const &FtpConfig::passphrase () const
 }
 #endif
 
-void FtpConfig::setLanguage (std::string language_)
+void FtpConfig::setLanguage (std::string_view const language_)
 {
-	m_language = std::move (language_);
+	m_language = language_.substr (0, language_.find_first_of ('\0'));
 	::setLanguage (m_language.c_str());
 }
 

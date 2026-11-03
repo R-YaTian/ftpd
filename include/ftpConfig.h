@@ -96,7 +96,7 @@ public:
 
 	/// \brief Set language
 	/// \param language_ Language to set
-	void setLanguage (std::string language_);
+	void setLanguage (std::string_view language_);
 
 	/// \brief Set user
 	/// \param user_ User
